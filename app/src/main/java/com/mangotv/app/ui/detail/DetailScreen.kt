@@ -1,5 +1,12 @@
 package com.mangotv.app.ui.detail
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -20,14 +27,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.model.HomeSection
@@ -38,6 +52,8 @@ import com.mangotv.app.ui.components.FullScreenErrorState
 import com.mangotv.app.ui.components.HomeLoadingSkeleton
 import com.mangotv.app.ui.home.TopNavBar
 import com.mangotv.app.ui.theme.MangoBackground
+import com.mangotv.app.ui.theme.MangoMotion
+import com.mangotv.app.ui.theme.MangoSurfaceHigh
 import kotlinx.coroutines.launch
 
 @Composable
@@ -135,7 +151,53 @@ private fun DetailContent(
     // keep the existing, larger layout untouched.
     val compact = content.type == ContentType.MOVIE
 
+    // Blurs the fixed backdrop once focus leaves the hero/nav region —
+    // reusing the same signal that already drives the scroll pinning above
+    // — matching how Nuvio recedes/blurs its page background once you've
+    // scrolled down into Cast/Seasons rather than leaving it sharp the
+    // whole way down.
+    val backdropBlur by animateDpAsState(
+        targetValue = if (heroRegionFocused) 0.dp else 24.dp,
+        animationSpec = tween(400),
+        label = "detailBackdropBlur"
+    )
+
     Box(modifier = modifier.fillMaxSize()) {
+        // Fixed, full-screen backdrop that stays put behind the scrolling
+        // content instead of scrolling away with the hero item — the page
+        // background the way Nuvio treats it, rather than an image
+        // confined to a "hero" region. Blur relies on RenderEffect
+        // (Android 12 / API 31+); on older Fire TV hardware it's a
+        // harmless no-op, so the backdrop still shows there, it just never
+        // blurs on scroll.
+        KenBurnsBackdrop(
+            url = content.backdropUrl,
+            modifier = Modifier
+                .fillMaxSize()
+                .clipToBounds()
+                .background(MangoSurfaceHigh)
+                .blur(radius = backdropBlur)
+        )
+
+        // Left-to-right gradient so hero text stays legible. Cast/Seasons
+        // further down sit on their own opaque card backgrounds rather
+        // than directly on the image, so unlike before this doesn't also
+        // need a bottom fade — the blur above now handles de-emphasizing
+        // the backdrop once scrolled that far.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            MangoBackground.copy(alpha = 0.55f),
+                            MangoBackground.copy(alpha = 0.2f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -219,4 +281,30 @@ private fun DetailContent(
             onNavigateDown = { returnToHero() }
         )
     }
+}
+
+@Composable
+private fun KenBurnsBackdrop(url: String?, modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "detailKenBurns")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(MangoMotion.HeroKenBurnsMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "detailKenBurnsScale"
+    )
+
+    AsyncImage(
+        model = url,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+    )
 }

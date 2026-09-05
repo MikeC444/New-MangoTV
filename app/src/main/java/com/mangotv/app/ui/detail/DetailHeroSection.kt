@@ -1,11 +1,5 @@
 package com.mangotv.app.ui.detail
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,16 +28,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -60,28 +50,26 @@ import com.mangotv.app.ui.components.MangoButton
 import com.mangotv.app.ui.components.MangoButtonStyle
 import com.mangotv.app.ui.components.TvFocusSurface
 import com.mangotv.app.ui.theme.MangoAmber
-import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
-import com.mangotv.app.ui.theme.MangoMotion
-import com.mangotv.app.ui.theme.MangoSurfaceHigh
 import com.mangotv.app.ui.theme.TextPrimary
 import com.mangotv.app.ui.theme.TextSecondary
 import com.mangotv.app.ui.theme.TextTertiary
 
 /**
- * Detail screen's backdrop hero: title/meta/description/actions bottom-left,
- * an IMDb-style rating badge bottom-right. Mirrors HeroSection's proven
- * layout (heightIn floor + matchParentSize + bottom-aligned content, so a
- * long description never silently overflows above the box) and its focus
- * handling at the nav<->hero seam (imperative scroll-then-focus on UP,
- * non-consuming notify-only on DOWN) so this screen doesn't need to
- * rediscover the same scrolling bugs Home already hit.
+ * Detail screen's hero content — title/meta/description/actions bottom-left,
+ * an IMDb-style rating badge bottom-right — layered transparently over
+ * DetailScreen's fixed, full-screen backdrop (see KenBurnsBackdrop there).
+ * This composable only reserves the vertical space and renders the text/
+ * buttons; it no longer owns any backdrop image of its own. Focus handling
+ * at the nav<->hero seam (imperative scroll-then-focus on UP, non-consuming
+ * notify-only on DOWN) mirrors HomeScreen's proven setup.
  */
 private val HeroTextShadow = Shadow(
     color = Color.Black.copy(alpha = 0.85f),
     offset = Offset(0f, 2f),
     blurRadius = 10f
 )
+
 @Composable
 fun DetailHeroSection(
     content: Content,
@@ -118,61 +106,7 @@ fun DetailHeroSection(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = heroMinHeight)
-            // Neutral fallback so the backdrop area reads as "still
-            // loading" rather than pure black for however long Coil takes
-            // to fetch this specific image — a fresh detail page always
-            // needs a brand new (likely uncached) backdrop, unlike Home's
-            // rows where images have usually already loaded by the time
-            // they're scrolled into view.
-            .background(MangoSurfaceHigh)
-            // The backdrop's Ken Burns graphicsLayer scale doesn't clip
-            // itself to its own layout bounds — its own "clip" flag only
-            // clips content to the layer's own shape, which scales along
-            // WITH the transform, so it does nothing to stop the enlarged
-            // layer from visually extending past this Box. Clipping has to
-            // happen here, at the parent, so the zoom stays contained
-            // within the hero regardless of scale.
-            .clipToBounds()
     ) {
-        KenBurnsBackdrop(url = content.backdropUrl, modifier = Modifier.matchParentSize())
-
-        // A much lighter left-to-right gradient than before — just enough
-        // of an assist that text stays readable, without darkening the
-        // artwork into "dark spots" across most of the hero. Text itself
-        // also carries a drop shadow (see MangoHeroTextShadow below) as
-        // the primary legibility mechanism now, so this can stay subtle.
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            MangoBackground.copy(alpha = 0.55f),
-                            MangoBackground.copy(alpha = 0.2f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-
-        // Bottom fade so the hero blends into the content below — lighter
-        // than before too, so the backdrop stays visible almost all the
-        // way down instead of fading to solid black.
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Transparent,
-                            MangoBackground.copy(alpha = 0.12f),
-                            MangoBackground.copy(alpha = 0.4f)
-                        )
-                    )
-                )
-        )
-
         content.rating?.let { rating ->
             Box(
                 modifier = Modifier
@@ -387,30 +321,4 @@ fun DetailHeroSection(
             }
         }
     }
-}
-
-@Composable
-private fun KenBurnsBackdrop(url: String?, modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "detailKenBurns")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(MangoMotion.HeroKenBurnsMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "detailKenBurnsScale"
-    )
-
-    AsyncImage(
-        model = url,
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-    )
 }
