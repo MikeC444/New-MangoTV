@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -142,11 +142,24 @@ private fun HomeContent(
                     }
                 )
             }
-            items(state.sections, key = { it.id }) { section ->
+            itemsIndexed(state.sections, key = { _, section -> section.id }) { index, section ->
                 ContentRow(
                     section = section,
                     onItemClick = {},
-                    modifier = Modifier.padding(bottom = MangoDimens.RowSpacing)
+                    modifier = Modifier.padding(bottom = MangoDimens.RowSpacing),
+                    onNavigateUpPastRow = if (index == 0) {
+                        {
+                            // Hero buttons no longer auto-scroll into view
+                            // (see HeroSection) — returning to them from the
+                            // first content row needs to be explicit too.
+                            coroutineScope.launch {
+                                listState.scrollToItem(0, 0)
+                                runCatching { playFocusRequester.requestFocus() }
+                            }
+                        }
+                    } else {
+                        null
+                    }
                 )
             }
             item(key = "bottom_spacer") {

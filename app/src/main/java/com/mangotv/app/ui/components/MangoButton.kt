@@ -34,7 +34,8 @@ fun MangoButton(
     style: MangoButtonStyle = MangoButtonStyle.GLASS,
     focusRequester: FocusRequester? = null,
     focusUp: FocusRequester? = null,
-    focusDown: FocusRequester? = null
+    focusDown: FocusRequester? = null,
+    bringIntoViewOnFocus: Boolean = true
 ) {
     val contentColor = if (style == MangoButtonStyle.FILLED) MangoBackground else TextPrimary
 
@@ -46,7 +47,8 @@ fun MangoButton(
         backgroundBrush = if (style == MangoButtonStyle.FILLED) MangoBrandGradient else null,
         focusRequester = focusRequester,
         focusUp = focusUp,
-        focusDown = focusDown
+        focusDown = focusDown,
+        bringIntoViewOnFocus = bringIntoViewOnFocus
     ) {
         Row(
             modifier = Modifier

@@ -220,13 +220,24 @@ fun HeroSection(
                     }
                 }
             ) {
+                // bringIntoViewOnFocus = false on all three: the hero is
+                // sized to always fit within one viewport (see heroMinHeight
+                // above), so these buttons are already fully visible
+                // whenever the list is at the top — automatic scroll-into-
+                // view has nothing legitimate to do here and was instead
+                // firing on stale/pre-layout coordinates right after the
+                // explicit scrollToItem(0, 0) in onNavigateUpPastHero,
+                // causing a second, unwanted scroll. Returning to the hero
+                // from a scrolled-down content row is handled explicitly by
+                // ContentRow's onNavigateUpPastRow instead.
                 MangoButton(
                     text = "Play",
                     icon = Icons.Filled.PlayArrow,
                     onClick = { onPlay(current) },
                     style = MangoButtonStyle.FILLED,
                     focusRequester = playFocusRequester,
-                    focusUp = navUpFocusRequester
+                    focusUp = navUpFocusRequester,
+                    bringIntoViewOnFocus = false
                 )
                 Spacer(Modifier.width(16.dp))
                 MangoButton(
@@ -234,7 +245,8 @@ fun HeroSection(
                     icon = Icons.Filled.Add,
                     onClick = { onAddToList(current) },
                     style = MangoButtonStyle.GLASS,
-                    focusUp = navUpFocusRequester
+                    focusUp = navUpFocusRequester,
+                    bringIntoViewOnFocus = false
                 )
                 Spacer(Modifier.width(16.dp))
                 MangoButton(
@@ -242,7 +254,8 @@ fun HeroSection(
                     icon = Icons.Filled.Info,
                     onClick = { onMoreInfo(current) },
                     style = MangoButtonStyle.GLASS,
-                    focusUp = navUpFocusRequester
+                    focusUp = navUpFocusRequester,
+                    bringIntoViewOnFocus = false
                 )
             }
         }

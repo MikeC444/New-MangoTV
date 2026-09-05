@@ -10,6 +10,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.HomeSection
@@ -20,7 +25,11 @@ import com.mangotv.app.ui.theme.TextPrimary
 fun ContentRow(
     section: HomeSection,
     onItemClick: (Content) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    // Only the first row needs this: its hero buttons no longer
+    // auto-scroll into view on focus (see HeroSection), so returning to
+    // them from here needs to be handled explicitly instead.
+    onNavigateUpPastRow: (() -> Unit)? = null
 ) {
     Column(modifier = modifier) {
         Text(
@@ -33,6 +42,18 @@ fun ContentRow(
             )
         )
         LazyRow(
+            modifier = if (onNavigateUpPastRow != null) {
+                Modifier.onPreviewKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                        onNavigateUpPastRow()
+                        true
+                    } else {
+                        false
+                    }
+                }
+            } else {
+                Modifier
+            },
             contentPadding = PaddingValues(horizontal = MangoDimens.ScreenPaddingHorizontal),
             horizontalArrangement = Arrangement.spacedBy(MangoDimens.CardSpacing)
         ) {
