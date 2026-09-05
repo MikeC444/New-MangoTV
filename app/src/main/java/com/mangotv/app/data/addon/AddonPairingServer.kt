@@ -22,11 +22,11 @@ class AddonPairingServer(
     override fun serve(session: IHTTPSession): Response {
         return when {
             session.method == Method.GET && (session.uri == "/" || session.uri == "/add") ->
-                Response.newFixedLengthResponse(Response.Status.OK, "text/html", FORM_HTML)
+                NanoHTTPD.newFixedLengthResponse(Response.Status.OK, "text/html", FORM_HTML)
 
             session.method == Method.POST && session.uri == "/submit" -> handleSubmit(session)
 
-            else -> Response.newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found")
+            else -> NanoHTTPD.newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found")
         }
     }
 
@@ -35,15 +35,15 @@ class AddonPairingServer(
             session.parseBody(HashMap<String, String>())
             val url = session.parms["url"]?.trim().orEmpty()
             if (url.isBlank()) {
-                Response.newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/html", ERROR_HTML)
+                NanoHTTPD.newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/html", ERROR_HTML)
             } else {
                 onUrlSubmitted(url)
-                Response.newFixedLengthResponse(Response.Status.OK, "text/html", SUCCESS_HTML)
+                NanoHTTPD.newFixedLengthResponse(Response.Status.OK, "text/html", SUCCESS_HTML)
             }
         } catch (e: IOException) {
-            Response.newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Error: ${e.message}")
+            NanoHTTPD.newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Error: ${e.message}")
         } catch (e: ResponseException) {
-            Response.newFixedLengthResponse(e.status, "text/plain", "Error: ${e.message}")
+            NanoHTTPD.newFixedLengthResponse(e.status, "text/plain", "Error: ${e.message}")
         }
     }
 
