@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
 
 sealed interface HomeUiState {
     data object Loading : HomeUiState
+    data object Empty : HomeUiState
     data class Success(
         val heroItems: List<Content>,
         val sections: List<HomeSection>
@@ -38,21 +39,30 @@ class HomeViewModel : ViewModel() {
     fun load() {
         viewModelScope.launch {
             _uiState.value = HomeUiState.Loading
-            try {
-                val providers = ProviderRegistry.activeProviders()
-                val hero = mutableListOf<Content>()
-                val sections = mutableListOf<HomeSection>()
-                for (provider in providers) {
-                    hero += provider.getFeatured()
-                    sections += provider.getHomeSections()
-                }
-                if (hero.isEmpty() && sections.isEmpty()) {
-                    _uiState.value = HomeUiState.Error("No content available right now.")
-                } else {
-                    _uiState.value = HomeUiState.Success(hero, sections)
-                }
-            } catch (t: Throwable) {
-                _uiState.value = HomeUiState.Error(t.message ?: "Something went wrong.")
+
+            val providers = ProviderRegistry.activeProviders()
+            if (providers.isEmpty()) {
+                _uiState.value = HomeUiState.Empty
+                return@launch
+            }
+
+            val hero = mutableListOf<Content>()
+            val sections = mutableListOf<HomeSection>()
+            var anyProviderFailed = false
+
+            for (provider in providers) {
+                runCatching { provider.getFeatured() }
+                    .onSuccess { hero += it }
+                    .onFailure { anyProviderFailed = true }
+                runCatching { provider.getHomeSections() }
+                    .onSuccess { sections += it }
+                    .onFailure { anyProviderFailed = true }
+            }
+
+            _uiState.value = when {
+                hero.isNotEmpty() || sections.isNotEmpty() -> HomeUiState.Success(hero, sections)
+                anyProviderFailed -> HomeUiState.Error("Couldn't reach your installed addons. Check your connection and try again.")
+                else -> HomeUiState.Empty
             }
         }
     }

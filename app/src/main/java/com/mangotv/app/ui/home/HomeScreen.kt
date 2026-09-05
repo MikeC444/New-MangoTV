@@ -2,6 +2,7 @@ package com.mangotv.app.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -22,9 +23,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mangotv.app.navigation.MangoRoutes
 import com.mangotv.app.navigation.routeForNavLabel
 import com.mangotv.app.ui.components.ContentRow
 import com.mangotv.app.ui.components.FullScreenErrorState
+import com.mangotv.app.ui.components.HomeEmptyState
 import com.mangotv.app.ui.components.HomeLoadingSkeleton
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
@@ -48,8 +51,35 @@ fun HomeScreen(
                 message = state.message,
                 onRetry = viewModel::load
             )
+            is HomeUiState.Empty -> HomeEmptyScreen(onNavigate = onNavigate)
             is HomeUiState.Success -> HomeContent(state = state, onNavigate = onNavigate)
         }
+    }
+}
+
+@Composable
+private fun HomeEmptyScreen(onNavigate: (String) -> Unit) {
+    val navFocusRequester = remember { FocusRequester() }
+    val buttonFocusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        runCatching { buttonFocusRequester.requestFocus() }
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        TopNavBar(
+            transparentBackground = false,
+            selectedIndex = 0,
+            selectedItemFocusRequester = navFocusRequester,
+            contentFocusRequester = buttonFocusRequester,
+            onItemClick = { label -> routeForNavLabel(label)?.let(onNavigate) }
+        )
+        HomeEmptyState(
+            onBrowseAddons = { onNavigate(MangoRoutes.SETTINGS_ADDONS) },
+            modifier = Modifier.weight(1f),
+            buttonFocusRequester = buttonFocusRequester,
+            buttonFocusUp = navFocusRequester
+        )
     }
 }
 
