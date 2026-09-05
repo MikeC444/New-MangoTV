@@ -70,7 +70,8 @@ fun HeroSection(
     onMoreInfo: (Content) -> Unit,
     modifier: Modifier = Modifier,
     navUpFocusRequester: FocusRequester? = null,
-    onNavigateUpPastHero: () -> Unit = {}
+    onNavigateUpPastHero: () -> Unit = {},
+    onNavigateDownFromHero: () -> Unit = {}
 ) {
     if (items.isEmpty()) return
 
@@ -212,19 +213,32 @@ fun HeroSection(
             // as a harmless fallback in case this doesn't consume the event.
             Row(
                 modifier = Modifier.onPreviewKeyEvent { event ->
-                    // Consume BOTH the KeyDown and KeyUp phases of this key —
-                    // leaving KeyUp unconsumed let it fall through to
-                    // Compose's default focus-move handling (which appears to
-                    // run its own scroll-into-view independent of
-                    // bringIntoViewOnFocus), causing a second unwanted scroll
-                    // after the imperative one below already ran on KeyDown.
-                    if (event.key == Key.DirectionUp) {
-                        if (event.type == KeyEventType.KeyDown) {
-                            onNavigateUpPastHero()
+                    when {
+                        // Consume BOTH the KeyDown and KeyUp phases of UP —
+                        // leaving KeyUp unconsumed let it fall through to
+                        // Compose's default focus-move handling (which
+                        // appears to run its own scroll-into-view
+                        // independent of bringIntoViewOnFocus), causing a
+                        // second unwanted scroll after the imperative one
+                        // below already ran on KeyDown.
+                        event.key == Key.DirectionUp -> {
+                            if (event.type == KeyEventType.KeyDown) {
+                                onNavigateUpPastHero()
+                            }
+                            true
                         }
-                        true
-                    } else {
-                        false
+                        // DOWN is intentionally NOT consumed: moving from
+                        // the hero into the first content row is supposed
+                        // to scroll (that's the one legitimate case), so
+                        // default focus-move handling is left to do it.
+                        // This only flags that the hero/nav "must stay
+                        // static" region is being left, so HomeContent's
+                        // watchdog stops correcting the list back to (0, 0).
+                        event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown -> {
+                            onNavigateDownFromHero()
+                            false
+                        }
+                        else -> false
                     }
                 }
             ) {

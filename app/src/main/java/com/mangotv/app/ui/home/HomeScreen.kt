@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -97,6 +98,14 @@ private fun HomeContent(
     val homeNavFocusRequester = remember { FocusRequester() }
     var hasRequestedInitialFocus by remember { mutableStateOf(false) }
 
+    // Whether focus is currently somewhere in the nav bar / hero region,
+    // where the user asked the screen to stay completely static. True by
+    // default since initial focus lands on the nav bar. Flipped false only
+    // when focus intentionally leaves the hero downward into the first
+    // content row (see onNavigateDownFromHero below); flipped back true by
+    // every explicit path that returns focus to the nav bar or hero.
+    var heroRegionFocused by remember { mutableStateOf(true) }
+
     val isScrolled by remember {
         derivedStateOf {
             listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 60
@@ -112,6 +121,24 @@ private fun HomeContent(
             // so this is safe even before the list has laid out.
             runCatching { homeNavFocusRequester.requestFocus() }
         }
+    }
+
+    // Safety net: whatever the exact mechanism is that occasionally scrolls
+    // the list out from under nav<->hero focus movement (LazyColumn has its
+    // own built-in "bring the newly focused child into view" behavior that
+    // isn't gated by TvFocusSurface's bringIntoViewOnFocus flag, since that
+    // flag only controls this app's own extra BringIntoViewRequester call),
+    // this watches the list's actual scroll position and immediately snaps
+    // it back to (0, 0) any time it drifts while heroRegionFocused is true.
+    // Once heroRegionFocused flips false (focus has moved into the content
+    // rows), this stops correcting and normal scrolling proceeds freely.
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .collect { (index, offset) ->
+                if (heroRegionFocused && (index != 0 || offset != 0)) {
+                    listState.scrollToItem(0, 0)
+                }
+            }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -135,10 +162,17 @@ private fun HomeContent(
                         // routing through a FocusRequester on a lazily
                         // composed list item — see HeroSection for why that
                         // approach crashed.
+                        heroRegionFocused = true
                         coroutineScope.launch {
                             listState.scrollToItem(0, 0)
                             runCatching { homeNavFocusRequester.requestFocus() }
                         }
+                    },
+                    onNavigateDownFromHero = {
+                        // Leaving the hero/nav region: let the watchdog
+                        // above stop pinning the list, since scrolling into
+                        // the first content row from here is desired.
+                        heroRegionFocused = false
                     }
                 )
             }
@@ -152,6 +186,7 @@ private fun HomeContent(
                             // Hero buttons no longer auto-scroll into view
                             // (see HeroSection) — returning to them from the
                             // first content row needs to be explicit too.
+                            heroRegionFocused = true
                             coroutineScope.launch {
                                 listState.scrollToItem(0, 0)
                                 runCatching { playFocusRequester.requestFocus() }
@@ -178,6 +213,7 @@ private fun HomeContent(
             onNavigateDown = {
                 // Scroll first, then focus — guarantees the Play button's
                 // hero item is actually composed before we try to focus it.
+                heroRegionFocused = true
                 coroutineScope.launch {
                     listState.scrollToItem(0, 0)
                     runCatching { playFocusRequester.requestFocus() }
