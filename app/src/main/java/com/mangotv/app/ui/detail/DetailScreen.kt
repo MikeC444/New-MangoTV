@@ -175,17 +175,31 @@ private fun DetailContent(
                             compact = compact
                         )
                         if (similar.isNotEmpty()) {
-                            ContentRow(
-                                section = HomeSection(
-                                    id = "similar",
+                            // Movies get the smaller, landscape-card
+                            // treatment; the TV show fallback (a show with
+                            // no season data) keeps the original ContentRow
+                            // layout, since compact is only ever true for
+                            // movies.
+                            if (compact) {
+                                SimilarRow(
                                     title = "You May Also Like",
-                                    items = similar
-                                ),
-                                onItemClick = ::navigateToContent,
-                                modifier = Modifier.weight(2f),
-                                onNavigateUpPastRow = { returnToHero() },
-                                compact = compact
-                            )
+                                    items = similar,
+                                    onItemClick = ::navigateToContent,
+                                    modifier = Modifier.weight(2f),
+                                    onNavigateUpPastRow = { returnToHero() }
+                                )
+                            } else {
+                                ContentRow(
+                                    section = HomeSection(
+                                        id = "similar",
+                                        title = "You May Also Like",
+                                        items = similar
+                                    ),
+                                    onItemClick = ::navigateToContent,
+                                    modifier = Modifier.weight(2f),
+                                    onNavigateUpPastRow = { returnToHero() }
+                                )
+                            }
                         }
                     }
                 }
