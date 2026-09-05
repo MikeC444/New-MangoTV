@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
@@ -20,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mangotv.app.data.model.ResolutionTier
 import com.mangotv.app.ui.components.TvFocusSurface
@@ -56,11 +59,19 @@ fun SourceFilterBar(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        // LazyRow rather than a plain Row: a plain Row's non-scrollable
+        // children can end up squeezed narrower than their natural width
+        // when the available space is tight (e.g. on a narrower physical
+        // screen than expected), and without a scroll container there's
+        // nowhere for the overflow to go — it forced text like "1080p" to
+        // wrap character-by-character instead. A LazyRow always measures
+        // each item at its natural width and simply scrolls if they don't
+        // all fit, so every filter stays fully legible and reachable.
+        LazyRow(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            SourceFilter.entries.forEach { filter ->
+            items(SourceFilter.entries) { filter ->
                 FilterPill(
                     label = filter.label,
                     selected = filter == selectedFilter,
@@ -96,6 +107,8 @@ private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
             color = if (focused || selected) TextPrimary else TextSecondary,
             fontWeight = if (focused || selected) FontWeight.Bold else FontWeight.Medium,
             style = MaterialTheme.typography.labelLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Clip,
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
         )
     }
@@ -117,7 +130,9 @@ private fun SortPill(sort: SourceSort, onClick: () -> Unit) {
                 text = "Sort by: ${sort.label}",
                 color = TextPrimary,
                 fontWeight = FontWeight.Medium,
-                style = MaterialTheme.typography.labelLarge
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Clip
             )
             Spacer(Modifier.width(6.dp))
             Icon(

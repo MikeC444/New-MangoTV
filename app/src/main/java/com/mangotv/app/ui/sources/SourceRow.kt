@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -106,7 +107,9 @@ fun SourceRow(
                                 Text(
                                     text = "$it seeders",
                                     color = TextTertiary,
-                                    style = MaterialTheme.typography.labelSmall
+                                    style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 Spacer(Modifier.width(14.dp))
                             }
@@ -121,7 +124,9 @@ fun SourceRow(
                                 Text(
                                     text = it,
                                     color = TextTertiary,
-                                    style = MaterialTheme.typography.labelSmall
+                                    style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -130,12 +135,17 @@ fun SourceRow(
 
                 Spacer(Modifier.width(16.dp))
 
-                Column(horizontalAlignment = Alignment.End) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.widthIn(max = 110.dp)
+                ) {
                     stream.sizeLabel?.let {
                         Text(
                             text = it,
                             color = TextSecondary,
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Spacer(Modifier.height(4.dp))
                     }
@@ -221,13 +231,17 @@ private fun QualityBadge(stream: Stream) {
             text = stream.qualityBadge,
             color = color,
             fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Clip
         )
         stream.sourceTag?.let {
             Text(
                 text = it,
                 color = color,
-                style = MaterialTheme.typography.labelSmall
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Clip
             )
         }
     }

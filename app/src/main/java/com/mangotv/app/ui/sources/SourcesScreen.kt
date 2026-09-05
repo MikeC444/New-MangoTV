@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -142,6 +143,11 @@ private fun SourcesContent(
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
+                    // Top padding so the "Recommended" badge — which floats
+                    // above its row via a negative offset — has room to
+                    // show fully instead of being clipped by the list's own
+                    // top edge when that row is first/near the top.
+                    contentPadding = PaddingValues(top = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     items(sorted, key = { it.id }) { stream ->
