@@ -167,13 +167,30 @@ fun HeroSection(
             // bottom edge instead of stranding a gap below the buttons.
             verticalArrangement = Arrangement.Bottom
         ) {
-            Text(
-                text = current.title,
-                color = TextPrimary,
-                style = MaterialTheme.typography.displayMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            // Prefer the addon-supplied clearlogo (a stylized title graphic,
+            // the way Stremio/Nuvio render hero titles) when one's
+            // available, falling back to plain text otherwise — catalog
+            // preview responses don't always carry a logo the way a full
+            // meta fetch does, so this is frequently the fallback path here
+            // even when it isn't on the detail page.
+            if (current.logoUrl != null) {
+                AsyncImage(
+                    model = current.logoUrl,
+                    contentDescription = current.title,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .height(90.dp)
+                        .widthIn(max = 500.dp)
+                )
+            } else {
+                Text(
+                    text = current.title,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.displayMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             Spacer(Modifier.height(14.dp))
 

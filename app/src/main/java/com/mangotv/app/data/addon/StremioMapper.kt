@@ -24,6 +24,7 @@ fun StremioMetaPreview.toContent(providerId: String): Content {
         description = description.orEmpty(),
         posterUrl = poster,
         backdropUrl = background ?: poster,
+        logoUrl = logo,
         year = year,
         runtimeMinutes = runtimeMinutes,
         rating = imdbRating?.toDoubleOrNull(),

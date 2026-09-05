@@ -212,13 +212,30 @@ fun DetailHeroSection(
                 .widthIn(max = 780.dp),
             verticalArrangement = if (compact) Arrangement.Top else Arrangement.Bottom
         ) {
-            Text(
-                text = content.title,
-                color = TextPrimary,
-                style = MaterialTheme.typography.displayLarge,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            // Prefer the addon-supplied clearlogo (a stylized title
+            // graphic, the way Stremio/Nuvio render it) over plain text
+            // when the full meta fetch provided one. Sized the same
+            // whether compact or not, matching the "keep the title the
+            // same" ask for the movie page — this is what replaces the
+            // title, not something that shrinks alongside everything else.
+            if (content.logoUrl != null) {
+                AsyncImage(
+                    model = content.logoUrl,
+                    contentDescription = content.title,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .height(100.dp)
+                        .widthIn(max = 700.dp)
+                )
+            } else {
+                Text(
+                    text = content.title,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.displayLarge,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             Spacer(Modifier.height(if (compact) 8.dp else 14.dp))
 
