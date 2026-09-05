@@ -1,6 +1,7 @@
 package com.mangotv.app.data.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 /**
  * Mirrors the Stremio addon manifest.json contract
@@ -19,7 +20,11 @@ data class AddonManifest(
     val logo: String? = null,
     val background: String? = null,
     val types: List<String> = emptyList(),
-    val resources: List<String> = emptyList(),
+    // Each entry is either a plain resource name ("catalog") or a scoped
+    // object ({"name":"stream","types":[...],"idPrefixes":[...]}) per the
+    // Stremio manifest spec — kept as raw JSON since Mango TV doesn't need
+    // to inspect it (catalogs are driven by [catalogs] below).
+    val resources: List<JsonElement> = emptyList(),
     val catalogs: List<AddonCatalogDef> = emptyList(),
     val idPrefixes: List<String> = emptyList()
 )
