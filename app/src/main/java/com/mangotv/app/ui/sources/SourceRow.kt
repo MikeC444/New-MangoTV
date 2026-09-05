@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,7 +50,8 @@ fun SourceRow(
     stream: Stream,
     isRecommended: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    focusRequester: FocusRequester? = null
 ) {
     val shape = RoundedCornerShape(MangoDimens.CardCornerRadius)
 
@@ -61,6 +63,7 @@ fun SourceRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .let { if (isRecommended) it.border(BorderStroke(2.dp, MangoAmber), shape) else it },
+            focusRequester = focusRequester,
             bringIntoViewOnFocus = false
         ) {
             Row(

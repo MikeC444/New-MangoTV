@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Info
@@ -24,12 +24,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -98,6 +100,19 @@ private fun SourcesContent(
             )
             SourceSort.SEEDERS -> filtered.sortedByDescending { it.seeders ?: -1 }
             SourceSort.SIZE -> filtered.sortedByDescending { it.sizeBytes ?: -1 }
+        }
+    }
+
+    // Land the D-pad cursor on the first (top/best) source as soon as the
+    // screen opens, rather than the default heuristic focusing the back
+    // button — same "request focus exactly once" pattern DetailScreen uses
+    // for its Play button.
+    val firstSourceFocusRequester = remember { FocusRequester() }
+    var hasRequestedInitialFocus by remember { mutableStateOf(false) }
+    LaunchedEffect(sorted) {
+        if (!hasRequestedInitialFocus && sorted.isNotEmpty()) {
+            hasRequestedInitialFocus = true
+            runCatching { firstSourceFocusRequester.requestFocus() }
         }
     }
 
@@ -178,14 +193,15 @@ private fun SourcesContent(
                         contentPadding = PaddingValues(top = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(sorted, key = { it.id }) { stream ->
+                        itemsIndexed(sorted, key = { _, stream -> stream.id }) { index, stream ->
                             SourceRow(
                                 stream = stream,
                                 isRecommended = stream.id == state.recommendedStreamId,
                                 // No player exists yet — selecting a source is a
                                 // stub for now, same as every other not-yet-built
                                 // action in this app (Watchlist, Mark as Watched).
-                                onClick = {}
+                                onClick = {},
+                                focusRequester = if (index == 0) firstSourceFocusRequester else null
                             )
                         }
                     }
