@@ -2,8 +2,8 @@ package com.mangotv.app.ui.detail
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -27,7 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
@@ -38,10 +38,12 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.model.HomeSection
@@ -151,32 +153,54 @@ private fun DetailContent(
     // keep the existing, larger layout untouched.
     val compact = content.type == ContentType.MOVIE
 
-    // Blurs the fixed backdrop once focus leaves the hero/nav region —
-    // reusing the same signal that already drives the scroll pinning above
-    // — matching how Nuvio recedes/blurs its page background once you've
-    // scrolled down into Cast/Seasons rather than leaving it sharp the
-    // whole way down.
-    val backdropBlur by animateDpAsState(
-        targetValue = if (heroRegionFocused) 0.dp else 24.dp,
+    // Crossfades the fixed backdrop from sharp to blurred once focus
+    // leaves the hero/nav region — reusing the same signal that already
+    // drives the scroll pinning above — matching how Nuvio recedes/blurs
+    // its page background once you've scrolled down into Cast/Seasons
+    // rather than leaving it sharp the whole way down.
+    val blurAlpha by animateFloatAsState(
+        targetValue = if (heroRegionFocused) 0f else 1f,
         animationSpec = tween(400),
-        label = "detailBackdropBlur"
+        label = "detailBackdropBlurAlpha"
     )
 
     Box(modifier = modifier.fillMaxSize()) {
         // Fixed, full-screen backdrop that stays put behind the scrolling
         // content instead of scrolling away with the hero item — the page
         // background the way Nuvio treats it, rather than an image
-        // confined to a "hero" region. Blur relies on RenderEffect
-        // (Android 12 / API 31+); on older Fire TV hardware it's a
-        // harmless no-op, so the backdrop still shows there, it just never
-        // blurs on scroll.
+        // confined to a "hero" region.
         KenBurnsBackdrop(
             url = content.backdropUrl,
             modifier = Modifier
                 .fillMaxSize()
                 .clipToBounds()
                 .background(MangoSurfaceHigh)
-                .blur(radius = backdropBlur)
+                .alpha(1f - blurAlpha)
+        )
+
+        // The "blurred" state: the same image loaded at a tiny target size
+        // and stretched to fill the screen. RenderEffect-based
+        // Modifier.blur() only works on Android 12+ (API 31) and is a
+        // silent no-op below that — real Fire TV hardware runs a wide
+        // spread of older Android/FireOS versions, and on-device testing
+        // confirmed blur() wasn't visibly doing anything there. Stretching
+        // a heavily downsampled bitmap back up produces a genuine blurred
+        // look through ordinary bitmap scaling, so it works on every API
+        // level this app supports (minSdk 23), not just the newest
+        // hardware. Crossfaded with the sharp version above via alpha
+        // rather than swapped outright, for a smooth transition.
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(content.backdropUrl)
+                .size(64, 36)
+                .build(),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .clipToBounds()
+                .background(MangoSurfaceHigh)
+                .alpha(blurAlpha)
         )
 
         // Left-to-right gradient so hero text stays legible. Cast/Seasons
