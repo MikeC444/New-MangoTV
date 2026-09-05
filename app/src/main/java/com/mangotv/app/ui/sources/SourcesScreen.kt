@@ -30,16 +30,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.mangotv.app.data.model.Stream
 import com.mangotv.app.navigation.MangoRoutes
 import com.mangotv.app.ui.components.FullScreenErrorState
 import com.mangotv.app.ui.components.HomeLoadingSkeleton
 import com.mangotv.app.ui.components.MangoButton
 import com.mangotv.app.ui.components.MangoButtonStyle
+import com.mangotv.app.ui.components.rememberOpaqueImageRequest
 import com.mangotv.app.ui.theme.DividerSubtle
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.TextPrimary
@@ -98,81 +101,100 @@ private fun SourcesContent(
         }
     }
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        // Weighted, not a fixed dp width — a fixed width can eat a hugely
-        // disproportionate share of the screen on non-standard displays
-        // (e.g. an ultrawide monitor with unusual density reporting),
-        // starving the row content on the right of the space it needs.
-        SourcesInfoPanel(
-            content = state.content,
-            onBack = onBack,
+    Box(modifier = Modifier.fillMaxSize()) {
+        // The backdrop now spans the entire screen (both the info panel and
+        // the source list) instead of being cropped separately inside just
+        // the left panel, so it reads as one continuous, centered photo
+        // rather than a narrow sliver — only lightly dimmed for contrast.
+        AsyncImage(
+            model = rememberOpaqueImageRequest(state.content.backdropUrl ?: state.content.posterUrl),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            alignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
+        )
+        Box(
             modifier = Modifier
-                .weight(0.35f)
-                .fillMaxHeight()
+                .fillMaxSize()
+                .background(MangoBackground.copy(alpha = 0.4f))
         )
 
-        Column(
-            modifier = Modifier
-                .weight(0.65f)
-                .fillMaxSize()
-                // Deliberately smaller than MangoDimens.ScreenPaddingHorizontal/
-                // Vertical (this screen's own local values, not the shared
-                // tokens other screens use) — this page packs a header, filter
-                // bar, several rows and a bottom bar into one non-scrolling
-                // view, so it needs tighter margins than a normal content page.
-                .padding(horizontal = 36.dp, vertical = 22.dp)
-        ) {
-            Text(
-                text = "Select a Source",
-                color = TextPrimary,
-                style = MaterialTheme.typography.headlineSmall
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "Choose the best quality and server for your stream.",
-                color = TextSecondary,
-                style = MaterialTheme.typography.labelLarge
+        Row(modifier = Modifier.fillMaxSize()) {
+            // Weighted, not a fixed dp width — a fixed width can eat a hugely
+            // disproportionate share of the screen on non-standard displays
+            // (e.g. an ultrawide monitor with unusual density reporting),
+            // starving the row content on the right of the space it needs.
+            SourcesInfoPanel(
+                content = state.content,
+                onBack = onBack,
+                modifier = Modifier
+                    .weight(0.35f)
+                    .fillMaxHeight()
             )
 
-            Spacer(Modifier.height(16.dp))
+            Column(
+                modifier = Modifier
+                    .weight(0.65f)
+                    .fillMaxSize()
+                    // Deliberately smaller than MangoDimens.ScreenPaddingHorizontal/
+                    // Vertical (this screen's own local values, not the shared
+                    // tokens other screens use) — this page packs a header, filter
+                    // bar, several rows and a bottom bar into one non-scrolling
+                    // view, so it needs tighter margins than a normal content page.
+                    .padding(horizontal = 36.dp, vertical = 22.dp)
+            ) {
+                Text(
+                    text = "Select a Source",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Choose the best quality and server for your stream.",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.labelLarge
+                )
 
-            SourceFilterBar(
-                selectedFilter = selectedFilter,
-                onFilterChange = { selectedFilter = it },
-                selectedSort = selectedSort,
-                onSortChange = { selectedSort = it }
-            )
+                Spacer(Modifier.height(16.dp))
 
-            Spacer(Modifier.height(14.dp))
+                SourceFilterBar(
+                    selectedFilter = selectedFilter,
+                    onFilterChange = { selectedFilter = it },
+                    selectedSort = selectedSort,
+                    onSortChange = { selectedSort = it }
+                )
 
-            if (sorted.isEmpty()) {
-                SourcesEmptyState(onManageAddons = onManageAddons, modifier = Modifier.weight(1f))
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    // Top padding so the "Recommended" badge — which floats
-                    // above its row via a negative offset — has room to
-                    // show fully instead of being clipped by the list's own
-                    // top edge when that row is first/near the top.
-                    contentPadding = PaddingValues(top = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(sorted, key = { it.id }) { stream ->
-                        SourceRow(
-                            stream = stream,
-                            isRecommended = stream.id == state.recommendedStreamId,
-                            // No player exists yet — selecting a source is a
-                            // stub for now, same as every other not-yet-built
-                            // action in this app (Watchlist, Mark as Watched).
-                            onClick = {}
-                        )
+                Spacer(Modifier.height(14.dp))
+
+                if (sorted.isEmpty()) {
+                    SourcesEmptyState(onManageAddons = onManageAddons, modifier = Modifier.weight(1f))
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        // Top padding so the "Recommended" badge — which floats
+                        // above its row via a negative offset — has room to
+                        // show fully instead of being clipped by the list's own
+                        // top edge when that row is first/near the top.
+                        contentPadding = PaddingValues(top = 10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(sorted, key = { it.id }) { stream ->
+                            SourceRow(
+                                stream = stream,
+                                isRecommended = stream.id == state.recommendedStreamId,
+                                // No player exists yet — selecting a source is a
+                                // stub for now, same as every other not-yet-built
+                                // action in this app (Watchlist, Mark as Watched).
+                                onClick = {}
+                            )
+                        }
                     }
                 }
+
+                Spacer(Modifier.height(14.dp))
+
+                SafetyBar()
             }
-
-            Spacer(Modifier.height(14.dp))
-
-            SafetyBar()
         }
     }
 }
