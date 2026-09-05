@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -101,6 +102,15 @@ fun HeroSection(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = heroMinHeight)
+            // graphicsLayer's own clip (set on the backdrop's AsyncImage
+            // below) only clips content to that layer's own shape, which
+            // travels WITH the scaleX/scaleY transform — it does nothing to
+            // stop the now-larger scaled layer from visually extending past
+            // THIS Box's bounds, since Box doesn't clip its children by
+            // default. Clipping has to happen here, at the parent, so the
+            // Ken Burns zoom stays contained within the hero regardless of
+            // scale.
+            .clipToBounds()
     ) {
         Crossfade(
             targetState = current,
@@ -306,12 +316,6 @@ private fun KenBurnsBackdrop(url: String?, modifier: Modifier = Modifier) {
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-                // Without this, the zoomed-in portion of the Ken Burns
-                // animation (scale > 1) draws outside the backdrop's own
-                // bounds — graphicsLayer scale doesn't clip to the layout
-                // size by default — bleeding a sliver of the image past
-                // the hero's bottom edge and over whatever row comes next.
-                clip = true
             }
     )
 }

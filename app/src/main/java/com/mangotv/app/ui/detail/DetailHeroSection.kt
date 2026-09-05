@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -115,6 +116,14 @@ fun DetailHeroSection(
             // rows where images have usually already loaded by the time
             // they're scrolled into view.
             .background(MangoSurfaceHigh)
+            // The backdrop's Ken Burns graphicsLayer scale doesn't clip
+            // itself to its own layout bounds — its own "clip" flag only
+            // clips content to the layer's own shape, which scales along
+            // WITH the transform, so it does nothing to stop the enlarged
+            // layer from visually extending past this Box. Clipping has to
+            // happen here, at the parent, so the zoom stays contained
+            // within the hero regardless of scale.
+            .clipToBounds()
     ) {
         KenBurnsBackdrop(url = content.backdropUrl, modifier = Modifier.matchParentSize())
 
@@ -356,12 +365,6 @@ private fun KenBurnsBackdrop(url: String?, modifier: Modifier = Modifier) {
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
-                // Without this, the zoomed-in portion of the Ken Burns
-                // animation (scale > 1) draws outside the backdrop's own
-                // bounds — graphicsLayer scale doesn't clip to the layout
-                // size by default — bleeding a sliver of the image past
-                // the hero's bottom edge and over whatever's below it.
-                clip = true
             }
     )
 }
