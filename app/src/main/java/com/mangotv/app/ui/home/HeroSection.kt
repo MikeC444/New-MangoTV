@@ -37,6 +37,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -64,7 +69,8 @@ fun HeroSection(
     onAddToList: (Content) -> Unit,
     onMoreInfo: (Content) -> Unit,
     modifier: Modifier = Modifier,
-    navUpFocusRequester: FocusRequester? = null
+    navUpFocusRequester: FocusRequester? = null,
+    onNavigateUpPastHero: () -> Unit = {}
 ) {
     if (items.isEmpty()) return
 
@@ -196,7 +202,24 @@ fun HeroSection(
 
             Spacer(Modifier.height(28.dp))
 
-            Row {
+            // Handling UP here (imperatively) rather than only through
+            // focusProperties/focusUp: that mechanism points at a
+            // FocusRequester, and if it ever targeted something inside the
+            // lazily-composed list that's been scrolled far enough to be
+            // disposed, using it throws. This scroll-then-focus path only
+            // ever targets the always-composed nav bar overlay, so it can't
+            // hit that. focusUp below still points at navUpFocusRequester
+            // as a harmless fallback in case this doesn't consume the event.
+            Row(
+                modifier = Modifier.onPreviewKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                        onNavigateUpPastHero()
+                        true
+                    } else {
+                        false
+                    }
+                }
+            ) {
                 MangoButton(
                     text = "Play",
                     icon = Icons.Filled.PlayArrow,

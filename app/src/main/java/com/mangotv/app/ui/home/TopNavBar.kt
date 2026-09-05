@@ -21,6 +21,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mangotv.app.ui.components.MangoLogo
@@ -39,7 +44,17 @@ fun TopNavBar(
     selectedIndex: Int = 0,
     selectedItemFocusRequester: FocusRequester? = null,
     contentFocusRequester: FocusRequester? = null,
-    onItemClick: (String) -> Unit = {}
+    onItemClick: (String) -> Unit = {},
+    // Imperative override for the DOWN seam into content. Prefer this over
+    // relying only on contentFocusRequester/focusDown when that requester
+    // targets something inside a lazily-composed list: focusProperties
+    // pointing at a FocusRequester with no currently-attached node throws,
+    // and a scrolled-far-enough list item can be disposed. This callback
+    // lets the caller scroll first, then focus, guaranteeing the target
+    // exists before it's used. contentFocusRequester still applies as a
+    // harmless fallback when this isn't provided (e.g. non-scrolling
+    // screens, where the declarative path is already safe).
+    onNavigateDown: (() -> Unit)? = null
 ) {
     val scrimAlpha by animateFloatAsState(
         targetValue = if (transparentBackground) 0.45f else 0.96f,
@@ -50,6 +65,20 @@ fun TopNavBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .let { base ->
+                if (onNavigateDown != null) {
+                    base.onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
+                            onNavigateDown()
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                } else {
+                    base
+                }
+            }
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
