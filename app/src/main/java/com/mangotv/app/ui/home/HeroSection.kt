@@ -8,6 +8,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -77,24 +79,27 @@ fun HeroSection(
         }
     }
 
-    // A fixed dp height risks being taller than the actual viewport on some
-    // TV screen densities — if it is, the initial focus request below ends
-    // up auto-scrolling the list to reveal the Play button, landing on a
-    // partial view of the hero with no way back to the top. Sizing off the
-    // real screen height guarantees the whole hero (backdrop through
-    // buttons) always fits in one screen.
+    // The backdrop's minimum cinematic height, as a floor rather than a
+    // fixed height: title/description length varies, and a fixed/exact
+    // height risks the bottom-aligned text column needing more room than
+    // that — since Box doesn't clip by default, it would silently overflow
+    // above the box's own top edge, invisible and unreachable by scrolling.
+    // matchParentSize() below defers the backdrop's size to whatever the
+    // text column actually needs (at least this floor, more if required),
+    // rather than the other way around.
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
-    val heroHeight = screenHeightDp * 0.82f
+    val heroMinHeight = screenHeightDp * 0.82f
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(heroHeight)
+            .heightIn(min = heroMinHeight)
     ) {
         Crossfade(
             targetState = current,
             animationSpec = tween(MangoMotion.HeroCrossfadeMillis),
-            label = "heroBackdrop"
+            label = "heroBackdrop",
+            modifier = Modifier.matchParentSize()
         ) { item ->
             KenBurnsBackdrop(url = item.backdropUrl)
         }
@@ -102,7 +107,7 @@ fun HeroSection(
         // Left-to-right dark gradient so text stays legible over any artwork
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .matchParentSize()
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
@@ -117,7 +122,7 @@ fun HeroSection(
         // Bottom fade so the hero blends into the row content below
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                .matchParentSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -138,7 +143,12 @@ fun HeroSection(
                     end = MangoDimens.ScreenPaddingHorizontal,
                     bottom = 56.dp
                 )
-                .widthIn(max = 760.dp)
+                .widthIn(max = 760.dp),
+            // The column can be measured taller than its content needs (it's
+            // floored to heroMinHeight above) — pack content to the bottom
+            // of that space so it stays visually pinned to the hero's
+            // bottom edge instead of stranding a gap below the buttons.
+            verticalArrangement = Arrangement.Bottom
         ) {
             Text(
                 text = current.title,
