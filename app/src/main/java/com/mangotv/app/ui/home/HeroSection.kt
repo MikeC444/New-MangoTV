@@ -306,6 +306,12 @@ private fun KenBurnsBackdrop(url: String?, modifier: Modifier = Modifier) {
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+                // Without this, the zoomed-in portion of the Ken Burns
+                // animation (scale > 1) draws outside the backdrop's own
+                // bounds — graphicsLayer scale doesn't clip to the layout
+                // size by default — bleeding a sliver of the image past
+                // the hero's bottom edge and over whatever row comes next.
+                clip = true
             }
     )
 }
