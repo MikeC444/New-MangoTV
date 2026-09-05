@@ -1,5 +1,10 @@
 package com.mangotv.app.ui.detail
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,6 +34,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -105,6 +114,11 @@ fun DetailHeroSection(
         screenHeightDp * 0.82f
     }
     val bottomPadding = if (compact) 24.dp else 56.dp
+
+    // Watched/Watchlist stay hidden until the user opens them via the
+    // three-dot button, then pop out next to Play instead of always
+    // being on screen.
+    var actionsExpanded by remember { mutableStateOf(false) }
 
     // TV shows show which episode Play will start — the first episode of
     // the first season, since there's no watch-progress tracking yet to
@@ -312,26 +326,37 @@ fun DetailHeroSection(
                     compact = compact
                 )
                 Spacer(Modifier.width(if (compact) 10.dp else 16.dp))
-                HeroIconButton(
-                    icon = Icons.Outlined.CheckCircle,
-                    contentDescription = "Mark as watched",
-                    onClick = onWatched,
-                    focusUp = navUpFocusRequester,
-                    compact = compact
-                )
-                Spacer(Modifier.width(if (compact) 10.dp else 16.dp))
-                HeroIconButton(
-                    icon = Icons.Filled.Add,
-                    contentDescription = "Add to Watchlist",
-                    onClick = onWatchlist,
-                    focusUp = navUpFocusRequester,
-                    compact = compact
-                )
-                Spacer(Modifier.width(if (compact) 10.dp else 16.dp))
+                AnimatedVisibility(
+                    visible = actionsExpanded,
+                    enter = fadeIn() + expandHorizontally(expandFrom = Alignment.Start),
+                    exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        HeroIconButton(
+                            icon = Icons.Outlined.CheckCircle,
+                            contentDescription = "Mark as watched",
+                            onClick = onWatched,
+                            focusUp = navUpFocusRequester,
+                            compact = compact
+                        )
+                        Spacer(Modifier.width(if (compact) 10.dp else 16.dp))
+                        HeroIconButton(
+                            icon = Icons.Filled.Add,
+                            contentDescription = "Add to Watchlist",
+                            onClick = onWatchlist,
+                            focusUp = navUpFocusRequester,
+                            compact = compact
+                        )
+                        Spacer(Modifier.width(if (compact) 10.dp else 16.dp))
+                    }
+                }
                 HeroIconButton(
                     icon = Icons.Filled.MoreVert,
                     contentDescription = "More options",
-                    onClick = onMore,
+                    onClick = {
+                        actionsExpanded = !actionsExpanded
+                        onMore()
+                    },
                     focusUp = navUpFocusRequester,
                     compact = compact
                 )
