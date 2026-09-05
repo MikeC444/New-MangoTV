@@ -81,26 +81,27 @@ fun ContentCard(
             bringIntoViewOnFocus = false
         ) {
             AsyncImage(
-                model = imageUrl,
+                model = rememberOpaqueImageRequest(imageUrl),
                 contentDescription = content.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
 
-            val ratingOverlayAlpha by animateFloatAsState(
+            val ratingOverlayAlpha = animateFloatAsState(
                 targetValue = if (focused && !isContinueWatching) 1f else 0f,
                 label = "ratingOverlayAlpha"
             )
+            val ratingOverlayGradient = remember {
+                Brush.verticalGradient(
+                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
+                )
+            }
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .graphicsLayer { alpha = ratingOverlayAlpha }
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
-                        )
-                    )
+                    .graphicsLayer { alpha = ratingOverlayAlpha.value }
+                    .background(ratingOverlayGradient)
                     .padding(10.dp)
             ) {
                 content.rating?.let {
@@ -113,12 +114,15 @@ fun ContentCard(
             }
 
             if (isContinueWatching) {
+                val progressGradient = remember {
+                    Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)))
+                }
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .fillMaxWidth()
                         .height(56.dp)
-                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))))
+                        .background(progressGradient)
                 )
                 content.watchProgress?.let { progress ->
                     Box(

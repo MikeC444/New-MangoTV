@@ -41,6 +41,7 @@ import com.mangotv.app.navigation.routeForNavLabel
 import com.mangotv.app.ui.components.ContentRow
 import com.mangotv.app.ui.components.FullScreenErrorState
 import com.mangotv.app.ui.components.HomeLoadingSkeleton
+import com.mangotv.app.ui.components.rememberOpaqueImageRequest
 import com.mangotv.app.ui.home.TopNavBar
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoSurfaceHigh
@@ -262,7 +263,7 @@ private fun DetailContent(
 @Composable
 private fun DetailBackdrop(url: String?, modifier: Modifier = Modifier) {
     AsyncImage(
-        model = url,
+        model = rememberOpaqueImageRequest(url),
         contentDescription = null,
         contentScale = ContentScale.Crop,
         modifier = modifier.fillMaxSize()

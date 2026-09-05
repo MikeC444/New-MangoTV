@@ -56,6 +56,7 @@ import com.mangotv.app.data.model.Content
 import com.mangotv.app.ui.components.HeroIconButton
 import com.mangotv.app.ui.components.MangoButton
 import com.mangotv.app.ui.components.MangoButtonStyle
+import com.mangotv.app.ui.components.rememberOpaqueImageRequest
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoMotion
@@ -344,7 +345,7 @@ private fun KenBurnsBackdrop(url: String?, modifier: Modifier = Modifier) {
     )
 
     AsyncImage(
-        model = url,
+        model = rememberOpaqueImageRequest(url),
         contentDescription = null,
         contentScale = ContentScale.Crop,
         modifier = modifier

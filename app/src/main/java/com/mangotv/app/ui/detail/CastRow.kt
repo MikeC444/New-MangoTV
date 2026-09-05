@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mangotv.app.data.model.CastMember
 import com.mangotv.app.ui.components.TvFocusSurface
+import com.mangotv.app.ui.components.rememberOpaqueImageRequest
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoSurfaceHigh
 import com.mangotv.app.ui.theme.TextPrimary
@@ -121,7 +122,7 @@ private fun CastCard(
         ) {
             if (member.photoUrl != null) {
                 AsyncImage(
-                    model = member.photoUrl,
+                    model = rememberOpaqueImageRequest(member.photoUrl),
                     contentDescription = member.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

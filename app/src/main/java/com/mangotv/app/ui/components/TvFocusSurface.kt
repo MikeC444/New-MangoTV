@@ -19,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
@@ -63,10 +62,20 @@ fun TvFocusSurface(
     val isFocused by interactionSource.collectIsFocusedAsState()
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
 
-    val scale by animateFloatAsState(
+    // scale/elevation are read via .value INSIDE the graphicsLayer block
+    // below rather than through `by` at composable scope, so an animation
+    // frame only invalidates that layer's draw instead of recomposing this
+    // whole composable — important here since every focus-adjacent card in
+    // a scrolling row carries its own instance of these animators.
+    val scale = animateFloatAsState(
         targetValue = if (isFocused) focusedScale else 1f,
         animationSpec = MangoMotion.focusTween,
         label = "focusScale"
+    )
+    val elevation = animateFloatAsState(
+        targetValue = if (isFocused) 18f else 0f,
+        animationSpec = MangoMotion.focusTween,
+        label = "focusElevation"
     )
     val borderAlpha by animateFloatAsState(
         targetValue = if (isFocused) 1f else 0f,
@@ -81,15 +90,22 @@ fun TvFocusSurface(
         }
     }
 
+    // The focus shadow used to be a separate `.shadow(...)` modifier added
+    // only `if (isFocused)` — during a held D-pad scroll, focus moves
+    // card-to-card continuously, so that structurally added/removed the
+    // modifier on nearly every frame. Folding shadowElevation into the
+    // graphicsLayer that already unconditionally sits here instead means
+    // there's always exactly one RenderNode, and only its parameters
+    // animate — same visual result, no structural churn.
     var boxModifier = modifier
         .bringIntoViewRequester(bringIntoViewRequester)
         .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
+            scaleX = scale.value
+            scaleY = scale.value
+            shadowElevation = elevation.value.dp.toPx()
+            this.shape = shape
+            clip = false
         }
-    if (isFocused) {
-        boxModifier = boxModifier.shadow(elevation = 18.dp, shape = shape, clip = false)
-    }
     if (focusRequester != null) {
         boxModifier = boxModifier.focusRequester(focusRequester)
     }

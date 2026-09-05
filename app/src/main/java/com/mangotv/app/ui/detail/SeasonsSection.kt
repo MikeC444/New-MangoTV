@@ -43,6 +43,7 @@ import coil.compose.AsyncImage
 import com.mangotv.app.data.model.Episode
 import com.mangotv.app.data.model.Season
 import com.mangotv.app.ui.components.TvFocusSurface
+import com.mangotv.app.ui.components.rememberOpaqueImageRequest
 import com.mangotv.app.ui.theme.MangoAmber
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoSurfaceHigh
@@ -176,7 +177,7 @@ private fun EpisodeCard(episode: Episode, onClick: () -> Unit) {
         ) {
             if (episode.thumbnailUrl != null) {
                 AsyncImage(
-                    model = episode.thumbnailUrl,
+                    model = rememberOpaqueImageRequest(episode.thumbnailUrl),
                     contentDescription = episode.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

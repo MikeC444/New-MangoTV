@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.ui.components.TvFocusSurface
+import com.mangotv.app.ui.components.rememberOpaqueImageRequest
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoSurface
 import com.mangotv.app.ui.theme.TextPrimary
@@ -134,7 +135,7 @@ private fun SimilarCard(content: Content, onClick: () -> Unit) {
         bringIntoViewOnFocus = false
     ) {
         AsyncImage(
-            model = content.backdropUrl ?: content.posterUrl,
+            model = rememberOpaqueImageRequest(content.backdropUrl ?: content.posterUrl),
             contentDescription = content.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
