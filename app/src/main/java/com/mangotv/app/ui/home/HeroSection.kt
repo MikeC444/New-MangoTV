@@ -333,26 +333,25 @@ fun HeroSection(
 
 @Composable
 private fun KenBurnsBackdrop(url: String?, modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "kenBurns")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(MangoMotion.HeroKenBurnsMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "kenBurnsScale"
-    )
+    // Temporarily paused (not removed) to test whether it's contributing to
+    // reported scroll sluggishness on Home — restore by uncommenting this
+    // block and putting `.graphicsLayer { scaleX = scale; scaleY = scale }`
+    // back on the AsyncImage below.
+    // val infiniteTransition = rememberInfiniteTransition(label = "kenBurns")
+    // val scale by infiniteTransition.animateFloat(
+    //     initialValue = 1f,
+    //     targetValue = 1.08f,
+    //     animationSpec = infiniteRepeatable(
+    //         animation = tween(MangoMotion.HeroKenBurnsMillis, easing = LinearEasing),
+    //         repeatMode = RepeatMode.Reverse
+    //     ),
+    //     label = "kenBurnsScale"
+    // )
 
     AsyncImage(
         model = rememberOpaqueImageRequest(url),
         contentDescription = null,
         contentScale = ContentScale.Crop,
-        modifier = modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
+        modifier = modifier.fillMaxSize()
     )
 }
