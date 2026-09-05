@@ -149,9 +149,12 @@ fun HeroSection(
                 )
         )
 
-        // Bottom fade so the hero blends into the row content below —
-        // lighter than before too, so the backdrop stays visible almost
-        // all the way down instead of fading to solid black.
+        // Bottom fade so the hero blends into the row content below. This
+        // now ramps all the way to a fully opaque MangoBackground at the
+        // very bottom edge, matching the solid background the "Popular"
+        // row sits on — previously it topped out at 0.4 alpha, so the
+        // backdrop was still partly visible right up to the hero's bottom
+        // edge and cut off abruptly instead of blending in.
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -160,8 +163,9 @@ fun HeroSection(
                         colors = listOf(
                             Color.Transparent,
                             Color.Transparent,
-                            MangoBackground.copy(alpha = 0.12f),
-                            MangoBackground.copy(alpha = 0.4f)
+                            MangoBackground.copy(alpha = 0.15f),
+                            MangoBackground.copy(alpha = 0.6f),
+                            MangoBackground
                         )
                     )
                 )
