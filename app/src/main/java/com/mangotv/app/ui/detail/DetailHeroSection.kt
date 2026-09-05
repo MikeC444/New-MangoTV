@@ -39,8 +39,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -75,6 +77,11 @@ import com.mangotv.app.ui.theme.TextTertiary
  * non-consuming notify-only on DOWN) so this screen doesn't need to
  * rediscover the same scrolling bugs Home already hit.
  */
+private val HeroTextShadow = Shadow(
+    color = Color.Black.copy(alpha = 0.85f),
+    offset = Offset(0f, 2f),
+    blurRadius = 10f
+)
 @Composable
 fun DetailHeroSection(
     content: Content,
@@ -129,22 +136,28 @@ fun DetailHeroSection(
     ) {
         KenBurnsBackdrop(url = content.backdropUrl, modifier = Modifier.matchParentSize())
 
-        // Left-to-right dark gradient so text stays legible over any artwork
+        // A much lighter left-to-right gradient than before — just enough
+        // of an assist that text stays readable, without darkening the
+        // artwork into "dark spots" across most of the hero. Text itself
+        // also carries a drop shadow (see MangoHeroTextShadow below) as
+        // the primary legibility mechanism now, so this can stay subtle.
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            MangoBackground.copy(alpha = 0.95f),
                             MangoBackground.copy(alpha = 0.55f),
+                            MangoBackground.copy(alpha = 0.2f),
                             Color.Transparent
                         )
                     )
                 )
         )
 
-        // Bottom fade so the hero blends into the content below
+        // Bottom fade so the hero blends into the content below — lighter
+        // than before too, so the backdrop stays visible almost all the
+        // way down instead of fading to solid black.
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -153,8 +166,8 @@ fun DetailHeroSection(
                         colors = listOf(
                             Color.Transparent,
                             Color.Transparent,
-                            MangoBackground.copy(alpha = 0.4f),
-                            MangoBackground
+                            MangoBackground.copy(alpha = 0.12f),
+                            MangoBackground.copy(alpha = 0.4f)
                         )
                     )
                 )
@@ -245,7 +258,7 @@ fun DetailHeroSection(
                 Text(
                     text = content.title,
                     color = TextPrimary,
-                    style = MaterialTheme.typography.displayLarge,
+                    style = MaterialTheme.typography.displayLarge.copy(shadow = HeroTextShadow),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -254,7 +267,8 @@ fun DetailHeroSection(
             Spacer(Modifier.height(if (compact) 8.dp else 14.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                val metaStyle = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium
+                val metaStyle = (if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium)
+                    .copy(shadow = HeroTextShadow)
                 val leadingParts = buildList {
                     content.year?.let { add(it.toString()) }
                     content.runtimeMinutes?.let { add("${it / 60}h ${it % 60}m") }
@@ -303,7 +317,8 @@ fun DetailHeroSection(
                 Text(
                     text = content.description,
                     color = TextSecondary,
-                    style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+                    style = (if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge)
+                        .copy(shadow = HeroTextShadow),
                     maxLines = if (compact) 2 else 4,
                     overflow = TextOverflow.Ellipsis
                 )

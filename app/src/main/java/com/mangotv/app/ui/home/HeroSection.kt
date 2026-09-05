@@ -36,8 +36,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
@@ -62,6 +64,12 @@ import kotlinx.coroutines.delay
 import androidx.compose.ui.focus.FocusRequester
 
 private const val HERO_ROTATE_MILLIS = 9000L
+
+private val HeroTextShadow = Shadow(
+    color = Color.Black.copy(alpha = 0.85f),
+    offset = Offset(0f, 2f),
+    blurRadius = 10f
+)
 
 @Composable
 fun HeroSection(
@@ -122,22 +130,28 @@ fun HeroSection(
             KenBurnsBackdrop(url = item.backdropUrl)
         }
 
-        // Left-to-right dark gradient so text stays legible over any artwork
+        // A much lighter left-to-right gradient than before — just enough
+        // of an assist that text stays readable, without darkening the
+        // artwork into "dark spots" across most of the hero. Text itself
+        // also carries a drop shadow (HeroTextShadow) as the primary
+        // legibility mechanism now, so this can stay subtle.
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
-                            MangoBackground.copy(alpha = 0.95f),
                             MangoBackground.copy(alpha = 0.55f),
+                            MangoBackground.copy(alpha = 0.2f),
                             Color.Transparent
                         )
                     )
                 )
         )
 
-        // Bottom fade so the hero blends into the row content below
+        // Bottom fade so the hero blends into the row content below —
+        // lighter than before too, so the backdrop stays visible almost
+        // all the way down instead of fading to solid black.
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -146,8 +160,8 @@ fun HeroSection(
                         colors = listOf(
                             Color.Transparent,
                             Color.Transparent,
-                            MangoBackground.copy(alpha = 0.4f),
-                            MangoBackground
+                            MangoBackground.copy(alpha = 0.12f),
+                            MangoBackground.copy(alpha = 0.4f)
                         )
                     )
                 )
@@ -191,7 +205,7 @@ fun HeroSection(
                 Text(
                     text = current.title,
                     color = TextPrimary,
-                    style = MaterialTheme.typography.displayMedium,
+                    style = MaterialTheme.typography.displayMedium.copy(shadow = HeroTextShadow),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -209,7 +223,7 @@ fun HeroSection(
                 Text(
                     text = metaParts.joinToString("   •   "),
                     color = TextSecondary,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.copy(shadow = HeroTextShadow),
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -219,7 +233,7 @@ fun HeroSection(
                 Text(
                     text = current.genres.joinToString("  ·  ") { it.name },
                     color = TextSecondary,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium.copy(shadow = HeroTextShadow)
                 )
             }
 
@@ -228,7 +242,7 @@ fun HeroSection(
             Text(
                 text = current.description,
                 color = TextSecondary,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.copy(shadow = HeroTextShadow),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis
             )
