@@ -1,11 +1,5 @@
 package com.mangotv.app.ui.detail
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -31,7 +25,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -50,7 +43,6 @@ import com.mangotv.app.ui.components.FullScreenErrorState
 import com.mangotv.app.ui.components.HomeLoadingSkeleton
 import com.mangotv.app.ui.home.TopNavBar
 import com.mangotv.app.ui.theme.MangoBackground
-import com.mangotv.app.ui.theme.MangoMotion
 import com.mangotv.app.ui.theme.MangoSurfaceHigh
 import kotlinx.coroutines.launch
 
@@ -150,12 +142,12 @@ private fun DetailContent(
     val compact = content.type == ContentType.MOVIE
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Fixed, full-screen backdrop that stays put behind the scrolling
-        // content instead of scrolling away with the hero item — the page
-        // background the way Nuvio treats it, rather than an image
-        // confined to a "hero" region. Stays sharp regardless of scroll
-        // position — no blur-on-scroll effect.
-        KenBurnsBackdrop(
+        // Fixed, full-screen, completely static backdrop that stays put
+        // behind the scrolling content instead of scrolling away with the
+        // hero item — the page background the way Nuvio treats it, rather
+        // than an image confined to a "hero" region. No zoom/pan animation
+        // and no blur-on-scroll — just the plain image.
+        DetailBackdrop(
             url = content.backdropUrl,
             modifier = Modifier
                 .fillMaxSize()
@@ -267,27 +259,11 @@ private fun DetailContent(
 }
 
 @Composable
-private fun KenBurnsBackdrop(url: String?, modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "detailKenBurns")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(MangoMotion.HeroKenBurnsMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "detailKenBurnsScale"
-    )
-
+private fun DetailBackdrop(url: String?, modifier: Modifier = Modifier) {
     AsyncImage(
         model = url,
         contentDescription = null,
         contentScale = ContentScale.Crop,
-        modifier = modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
+        modifier = modifier.fillMaxSize()
     )
 }
