@@ -22,6 +22,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -123,15 +127,31 @@ private fun HomeContent(
         }
     }
 
-    // Safety net: whatever the exact mechanism is that occasionally scrolls
-    // the list out from under nav<->hero focus movement (LazyColumn has its
-    // own built-in "bring the newly focused child into view" behavior that
-    // isn't gated by TvFocusSurface's bringIntoViewOnFocus flag, since that
-    // flag only controls this app's own extra BringIntoViewRequester call),
-    // this watches the list's actual scroll position and immediately snaps
-    // it back to (0, 0) any time it drifts while heroRegionFocused is true.
-    // Once heroRegionFocused flips false (focus has moved into the content
-    // rows), this stops correcting and normal scrolling proceeds freely.
+    // Primary defense: swallow any incremental scroll delta the list tries
+    // to apply on its own while heroRegionFocused is true — e.g. LazyColumn's
+    // built-in "bring the newly focused child into view" behavior firing
+    // when focus moves onto a hero button, which isn't gated by
+    // TvFocusSurface's bringIntoViewOnFocus flag (that only controls this
+    // app's own extra, separate BringIntoViewRequester call). That automatic
+    // relocation scrolls incrementally (frame by frame), which dispatches
+    // through the standard nested-scroll delta path, so intercepting it here
+    // stops the bad frame from ever being drawn. Our own explicit
+    // scrollToItem(0, 0) calls jump the list directly to a target index/
+    // offset rather than applying a delta, so they're unaffected by this.
+    val heroScrollLock = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                return if (heroRegionFocused) available else Offset.Zero
+            }
+        }
+    }
+
+    // Secondary safety net, in case anything still slips past the
+    // interception above: watches the list's actual scroll position and
+    // snaps it back to (0, 0) any time it drifts while heroRegionFocused is
+    // true. Once heroRegionFocused flips false (focus has moved into the
+    // content rows), this stops correcting and normal scrolling proceeds
+    // freely.
     LaunchedEffect(listState) {
         snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
             .collect { (index, offset) ->
@@ -144,7 +164,9 @@ private fun HomeContent(
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .nestedScroll(heroScrollLock)
+                .fillMaxSize()
         ) {
             item(key = "hero") {
                 HeroSection(
