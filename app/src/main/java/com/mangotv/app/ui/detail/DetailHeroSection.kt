@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
@@ -218,19 +219,26 @@ fun DetailHeroSection(
         ) {
             // Prefer the addon-supplied clearlogo (a stylized title
             // graphic, the way Stremio/Nuvio render it) over plain text
-            // when the full meta fetch provided one. On compact, a small
-            // negative x-offset compensates for the transparent margin
-            // most logo PNGs carry around their visible artwork, so it
-            // reads as flush with the left edge like the other text below
-            // it rather than visibly indented.
+            // when the full meta fetch provided one. A fully fixed box
+            // (not height-plus-max-width) so the rendered logo is always
+            // the same footprint regardless of the source image's own
+            // aspect ratio — a height-plus-widthIn(max) combination let a
+            // wide logo render far beyond the intended cap, spanning
+            // almost the full screen width. On compact, a small negative
+            // x-offset compensates for the transparent margin most logo
+            // PNGs carry around their visible artwork, so it reads as
+            // flush with the left edge like the other text below it.
             if (content.logoUrl != null) {
                 AsyncImage(
                     model = content.logoUrl,
                     contentDescription = content.title,
                     contentScale = ContentScale.Fit,
+                    alignment = Alignment.CenterStart,
                     modifier = Modifier
-                        .height(if (compact) 116.dp else 100.dp)
-                        .widthIn(max = if (compact) 760.dp else 700.dp)
+                        .size(
+                            width = if (compact) 420.dp else 380.dp,
+                            height = if (compact) 116.dp else 100.dp
+                        )
                         .let { if (compact) it.offset(x = (-16).dp) else it }
                 )
             } else {

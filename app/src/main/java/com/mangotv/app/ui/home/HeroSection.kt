@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
@@ -174,13 +175,17 @@ fun HeroSection(
             // meta fetch does, so this is frequently the fallback path here
             // even when it isn't on the detail page.
             if (current.logoUrl != null) {
+                // A fully fixed box (not height-plus-max-width) so the
+                // rendered logo is always the same footprint regardless of
+                // the source image's own aspect ratio — a height-plus-
+                // widthIn(max) combination let a wide logo render far
+                // beyond the intended cap.
                 AsyncImage(
                     model = current.logoUrl,
                     contentDescription = current.title,
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .height(90.dp)
-                        .widthIn(max = 500.dp)
+                    alignment = Alignment.CenterStart,
+                    modifier = Modifier.size(width = 380.dp, height = 90.dp)
                 )
             } else {
                 Text(
