@@ -106,7 +106,11 @@ private fun HomeContent(
     LaunchedEffect(state) {
         if (!hasRequestedInitialFocus) {
             hasRequestedInitialFocus = true
-            runCatching { playFocusRequester.requestFocus() }
+            // Land on the "Home" nav tab by default, not the Play button —
+            // homeNavFocusRequester targets the nav bar overlay, which is
+            // always composed (unlike anything inside the LazyColumn below),
+            // so this is safe even before the list has laid out.
+            runCatching { homeNavFocusRequester.requestFocus() }
         }
     }
 
