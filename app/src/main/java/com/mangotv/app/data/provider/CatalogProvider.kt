@@ -1,6 +1,7 @@
 package com.mangotv.app.data.provider
 
 import com.mangotv.app.data.model.Content
+import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.model.HomeSection
 
 /**
@@ -19,4 +20,11 @@ interface CatalogProvider {
     suspend fun getHomeSections(): List<HomeSection>
 
     suspend fun getFeatured(): List<Content>
+
+    /**
+     * Full detail lookup for a single title (cast, director, extended
+     * description) — richer than what a catalog listing's preview items
+     * carry. Returns null if this provider can't resolve the id.
+     */
+    suspend fun getDetails(type: ContentType, id: String): Content?
 }

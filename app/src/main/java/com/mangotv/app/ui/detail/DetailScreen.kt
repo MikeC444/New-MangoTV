@@ -1,0 +1,187 @@
+package com.mangotv.app.ui.detail
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mangotv.app.data.model.Content
+import com.mangotv.app.data.model.HomeSection
+import com.mangotv.app.navigation.MangoRoutes
+import com.mangotv.app.navigation.routeForNavLabel
+import com.mangotv.app.ui.components.ContentRow
+import com.mangotv.app.ui.components.FullScreenErrorState
+import com.mangotv.app.ui.components.HomeLoadingSkeleton
+import com.mangotv.app.ui.home.TopNavBar
+import com.mangotv.app.ui.theme.MangoBackground
+import kotlinx.coroutines.launch
+
+@Composable
+fun DetailScreen(
+    onNavigate: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: DetailViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MangoBackground)
+    ) {
+        when (val state = uiState) {
+            is DetailUiState.Loading -> HomeLoadingSkeleton()
+            is DetailUiState.Error -> FullScreenErrorState(
+                message = state.message,
+                onRetry = viewModel::load
+            )
+            is DetailUiState.Success -> DetailContent(
+                content = state.content,
+                similar = state.similar,
+                onNavigate = onNavigate
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailContent(
+    content: Content,
+    similar: List<Content>,
+    onNavigate: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    val playFocusRequester = remember { FocusRequester() }
+    val navFocusRequester = remember { FocusRequester() }
+    var hasRequestedInitialFocus by remember { mutableStateOf(false) }
+
+    // Same "keep the nav bar / hero region completely static, only scroll
+    // when focus genuinely moves into the content below" setup already
+    // proven on Home — see HomeScreen.kt for the full rationale on why both
+    // the NestedScrollConnection block and the snapshotFlow watchdog exist.
+    var heroRegionFocused by remember { mutableStateOf(true) }
+
+    val isScrolled by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 60
+        }
+    }
+
+    LaunchedEffect(content.id) {
+        if (!hasRequestedInitialFocus) {
+            hasRequestedInitialFocus = true
+            runCatching { playFocusRequester.requestFocus() }
+        }
+    }
+
+    val heroScrollLock = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                return if (heroRegionFocused) available else Offset.Zero
+            }
+        }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .collect { (index, offset) ->
+                if (heroRegionFocused && (index != 0 || offset != 0)) {
+                    listState.scrollToItem(0, 0)
+                }
+            }
+    }
+
+    fun returnToHero() {
+        heroRegionFocused = true
+        coroutineScope.launch {
+            listState.scrollToItem(0, 0)
+            runCatching { playFocusRequester.requestFocus() }
+        }
+    }
+
+    fun navigateToContent(target: Content) {
+        val providerId = target.providerId ?: return
+        onNavigate(MangoRoutes.detail(providerId, target.type, target.id))
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .nestedScroll(heroScrollLock)
+                .fillMaxSize()
+        ) {
+            item(key = "hero") {
+                DetailHeroSection(
+                    content = content,
+                    playFocusRequester = playFocusRequester,
+                    onPlay = {},
+                    onWatchlist = {},
+                    onMore = {},
+                    navUpFocusRequester = navFocusRequester,
+                    onNavigateUpPastHero = { returnToHero() },
+                    onNavigateDownFromHero = { heroRegionFocused = false }
+                )
+            }
+            item(key = "cast_and_similar") {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    CastRow(
+                        cast = content.cast,
+                        modifier = Modifier.weight(1f),
+                        onNavigateUpPastRow = { returnToHero() }
+                    )
+                    if (similar.isNotEmpty()) {
+                        ContentRow(
+                            section = HomeSection(
+                                id = "similar",
+                                title = "You May Also Like",
+                                items = similar
+                            ),
+                            onItemClick = ::navigateToContent,
+                            modifier = Modifier.weight(2f),
+                            onNavigateUpPastRow = { returnToHero() }
+                        )
+                    }
+                }
+            }
+            item(key = "bottom_spacer") {
+                Spacer(Modifier.height(48.dp))
+            }
+        }
+
+        TopNavBar(
+            transparentBackground = !isScrolled,
+            modifier = Modifier.align(Alignment.TopCenter),
+            selectedIndex = 0,
+            selectedItemFocusRequester = navFocusRequester,
+            contentFocusRequester = playFocusRequester,
+            onItemClick = { label -> routeForNavLabel(label)?.let(onNavigate) },
+            onNavigateDown = { returnToHero() }
+        )
+    }
+}

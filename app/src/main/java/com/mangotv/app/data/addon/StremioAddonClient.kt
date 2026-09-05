@@ -50,6 +50,14 @@ class StremioAddonClient {
             json.decodeFromString(StremioStreamResponse.serializer(), body).streams
         }
 
+    suspend fun fetchMeta(manifestUrl: String, type: String, id: String): StremioMeta? =
+        withContext(Dispatchers.IO) {
+            val base = AddonUrl.resourceBase(manifestUrl)
+            val url = "$base/meta/$type/${encode(id)}.json"
+            val body = get(url)
+            json.decodeFromString(StremioMetaResponse.serializer(), body).meta
+        }
+
     private fun encode(segment: String): String = URLEncoder.encode(segment, "UTF-8")
 
     private fun get(url: String): String {

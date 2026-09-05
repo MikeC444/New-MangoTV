@@ -4,6 +4,7 @@ import com.mangotv.app.data.addon.StremioAddonClient
 import com.mangotv.app.data.addon.toContent
 import com.mangotv.app.data.model.AddonManifest
 import com.mangotv.app.data.model.Content
+import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.model.HomeSection
 
 private val SUPPORTED_CATALOG_TYPES = setOf("movie", "series")
@@ -46,5 +47,12 @@ class StremioAddonProvider(
                 items = metas.map { it.toContent(providerId = id) }
             )
         }
+    }
+
+    override suspend fun getDetails(type: ContentType, id: String): Content? {
+        val stremioType = if (type == ContentType.TV_SHOW) "series" else "movie"
+        return runCatching { client.fetchMeta(manifestUrl, stremioType, id) }
+            .getOrNull()
+            ?.toContent(providerId = this.id)
     }
 }

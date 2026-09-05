@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.mangotv.app.ui.detail.DetailScreen
 import com.mangotv.app.ui.home.HomeScreen
 import com.mangotv.app.ui.settings.AddAddonScreen
 import com.mangotv.app.ui.settings.AddonsScreen
@@ -35,6 +36,11 @@ fun MangoNavHost() {
             AddAddonScreen(
                 onNavigate = { route -> navController.navigate(route) },
                 onInstalled = { navController.popBackStack() }
+            )
+        }
+        composable(MangoRoutes.DETAIL_PATTERN) {
+            DetailScreen(
+                onNavigate = { route -> navController.navigate(route) }
             )
         }
     }

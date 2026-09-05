@@ -29,6 +29,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mangotv.app.data.model.Content
 import com.mangotv.app.navigation.MangoRoutes
 import com.mangotv.app.navigation.routeForNavLabel
 import com.mangotv.app.ui.components.ContentRow
@@ -161,6 +162,11 @@ private fun HomeContent(
             }
     }
 
+    fun navigateToContent(target: Content) {
+        val providerId = target.providerId ?: return
+        onNavigate(MangoRoutes.detail(providerId, target.type, target.id))
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
@@ -174,7 +180,7 @@ private fun HomeContent(
                     playFocusRequester = playFocusRequester,
                     onPlay = {},
                     onAddToList = {},
-                    onMoreInfo = {},
+                    onMoreInfo = ::navigateToContent,
                     navUpFocusRequester = homeNavFocusRequester,
                     onNavigateUpPastHero = {
                         // Imperative, not focusProperties-driven: pressing UP
@@ -201,7 +207,7 @@ private fun HomeContent(
             itemsIndexed(state.sections, key = { _, section -> section.id }) { index, section ->
                 ContentRow(
                     section = section,
-                    onItemClick = {},
+                    onItemClick = ::navigateToContent,
                     modifier = Modifier.padding(bottom = MangoDimens.RowSpacing),
                     onNavigateUpPastRow = if (index == 0) {
                         {
