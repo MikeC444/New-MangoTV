@@ -108,14 +108,6 @@ fun HeroSection(
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
     val heroMinHeight = screenHeightDp * 0.82f
 
-    // The two gradient overlays below only need to cover the region where
-    // the bottom-anchored text/buttons actually sit, not the whole hero —
-    // alpha-blending the FULL hero (~82% of the screen) is a lot of avoidable
-    // GPU overdraw that gets paid on every frame anything on screen redraws
-    // (e.g. the first content row scrolling below it) while the hero is
-    // still visible above it, not just while the hero itself is animating.
-    val scrimHeight = heroMinHeight * 0.6f
-
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -146,9 +138,7 @@ fun HeroSection(
         // legibility mechanism now, so this can stay subtle.
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(scrimHeight)
-                .align(Alignment.BottomStart)
+                .matchParentSize()
                 .background(
                     Brush.horizontalGradient(
                         colors = listOf(
@@ -168,9 +158,7 @@ fun HeroSection(
         // edge and cut off abruptly instead of blending in.
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(scrimHeight)
-                .align(Alignment.BottomStart)
+                .matchParentSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
