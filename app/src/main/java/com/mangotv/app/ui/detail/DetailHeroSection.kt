@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -44,7 +43,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -58,9 +56,9 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.ContentType
+import com.mangotv.app.ui.components.HeroIconButton
 import com.mangotv.app.ui.components.MangoButton
 import com.mangotv.app.ui.components.MangoButtonStyle
-import com.mangotv.app.ui.components.TvFocusSurface
 import com.mangotv.app.ui.theme.MangoAmber
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.TextPrimary
@@ -242,7 +240,7 @@ fun DetailHeroSection(
                 if (leadingParts.isNotEmpty()) {
                     Text(
                         text = leadingParts.joinToString("   "),
-                        color = TextSecondary,
+                        color = Color.White,
                         style = metaStyle,
                         fontWeight = FontWeight.Medium
                     )
@@ -254,14 +252,14 @@ fun DetailHeroSection(
                             .border(BorderStroke(1.dp, TextTertiary), RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
-                        Text(text = rating, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
+                        Text(text = rating, color = Color.White, style = MaterialTheme.typography.labelSmall)
                     }
                 }
                 if (content.genres.isNotEmpty()) {
                     Spacer(Modifier.width(12.dp))
                     Text(
                         text = content.genres.joinToString("  •  ") { it.name },
-                        color = TextSecondary,
+                        color = Color.White,
                         style = metaStyle,
                         fontWeight = FontWeight.Medium
                     )
@@ -282,7 +280,7 @@ fun DetailHeroSection(
                 Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
                 Text(
                     text = content.description,
-                    color = TextSecondary,
+                    color = Color.White,
                     style = (if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge)
                         .copy(shadow = HeroTextShadow),
                     maxLines = if (compact) 2 else 4,
@@ -362,31 +360,5 @@ fun DetailHeroSection(
                 )
             }
         }
-    }
-}
-
-/** Small circular icon button used for Watched/Watchlist/More, matching the
- * dark translucent circles next to the pill-shaped Play button. */
-@Composable
-private fun HeroIconButton(
-    icon: ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-    focusUp: FocusRequester?,
-    compact: Boolean
-) {
-    TvFocusSurface(
-        onClick = onClick,
-        shape = CircleShape,
-        backgroundColor = Color.White.copy(alpha = 0.12f),
-        focusUp = focusUp,
-        bringIntoViewOnFocus = false
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = contentDescription,
-            tint = TextPrimary,
-            modifier = Modifier.padding(if (compact) 10.dp else 14.dp)
-        )
     }
 }

@@ -53,13 +53,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mangotv.app.data.model.Content
+import com.mangotv.app.ui.components.HeroIconButton
 import com.mangotv.app.ui.components.MangoButton
 import com.mangotv.app.ui.components.MangoButtonStyle
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoMotion
 import com.mangotv.app.ui.theme.TextPrimary
-import com.mangotv.app.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
 import androidx.compose.ui.focus.FocusRequester
 
@@ -222,7 +222,7 @@ fun HeroSection(
                 }
                 Text(
                     text = metaParts.joinToString("   •   "),
-                    color = TextSecondary,
+                    color = Color.White,
                     style = MaterialTheme.typography.titleMedium.copy(shadow = HeroTextShadow),
                     fontWeight = FontWeight.Medium
                 )
@@ -232,7 +232,7 @@ fun HeroSection(
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = current.genres.joinToString("  ·  ") { it.name },
-                    color = TextSecondary,
+                    color = Color.White,
                     style = MaterialTheme.typography.bodyMedium.copy(shadow = HeroTextShadow)
                 )
             }
@@ -241,7 +241,7 @@ fun HeroSection(
 
             Text(
                 text = current.description,
-                color = TextSecondary,
+                color = Color.White,
                 style = MaterialTheme.typography.bodyLarge.copy(shadow = HeroTextShadow),
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis
@@ -302,28 +302,24 @@ fun HeroSection(
                     text = "Play",
                     icon = Icons.Filled.PlayArrow,
                     onClick = { onPlay(current) },
-                    style = MangoButtonStyle.FILLED,
+                    style = MangoButtonStyle.LIGHT,
                     focusRequester = playFocusRequester,
                     focusUp = navUpFocusRequester,
                     bringIntoViewOnFocus = false
                 )
                 Spacer(Modifier.width(16.dp))
-                MangoButton(
-                    text = "My List",
+                HeroIconButton(
                     icon = Icons.Filled.Add,
+                    contentDescription = "Add to My List",
                     onClick = { onAddToList(current) },
-                    style = MangoButtonStyle.GLASS,
-                    focusUp = navUpFocusRequester,
-                    bringIntoViewOnFocus = false
+                    focusUp = navUpFocusRequester
                 )
                 Spacer(Modifier.width(16.dp))
-                MangoButton(
-                    text = "More Info",
+                HeroIconButton(
                     icon = Icons.Filled.Info,
+                    contentDescription = "More Info",
                     onClick = { onMoreInfo(current) },
-                    style = MangoButtonStyle.GLASS,
-                    focusUp = navUpFocusRequester,
-                    bringIntoViewOnFocus = false
+                    focusUp = navUpFocusRequester
                 )
             }
         }

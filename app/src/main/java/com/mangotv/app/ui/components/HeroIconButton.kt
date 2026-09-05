@@ -1,0 +1,43 @@
+package com.mangotv.app.ui.components
+
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import com.mangotv.app.ui.theme.TextPrimary
+
+/** Small circular icon button used next to a hero's pill-shaped Play button
+ * (e.g. Watchlist, More Info, Mark as watched) on both Home and the detail
+ * page. */
+@Composable
+fun HeroIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    focusRequester: FocusRequester? = null,
+    focusUp: FocusRequester? = null,
+    compact: Boolean = false
+) {
+    TvFocusSurface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = CircleShape,
+        backgroundColor = Color.White.copy(alpha = 0.12f),
+        focusRequester = focusRequester,
+        focusUp = focusUp,
+        bringIntoViewOnFocus = false
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = TextPrimary,
+            modifier = Modifier.padding(if (compact) 10.dp else 14.dp)
+        )
+    }
+}
