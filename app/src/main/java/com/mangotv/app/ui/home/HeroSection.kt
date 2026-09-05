@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,10 +77,19 @@ fun HeroSection(
         }
     }
 
+    // A fixed dp height risks being taller than the actual viewport on some
+    // TV screen densities — if it is, the initial focus request below ends
+    // up auto-scrolling the list to reveal the Play button, landing on a
+    // partial view of the hero with no way back to the top. Sizing off the
+    // real screen height guarantees the whole hero (backdrop through
+    // buttons) always fits in one screen.
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+    val heroHeight = screenHeightDp * 0.82f
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(MangoDimens.HeroHeight)
+            .height(heroHeight)
     ) {
         Crossfade(
             targetState = current,

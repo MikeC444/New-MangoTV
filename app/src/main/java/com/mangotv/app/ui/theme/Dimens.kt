@@ -23,6 +23,4 @@ object MangoDimens {
 
     val RowSpacing = 40.dp
     val CardSpacing = 18.dp
-
-    val HeroHeight = 720.dp
 }
