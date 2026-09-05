@@ -60,7 +60,26 @@ data class StremioMeta(
     val genres: List<String>? = null,
     val runtime: String? = null,
     val director: List<String>? = null,
-    val cast: List<String>? = null
+    val cast: List<String>? = null,
+    val videos: List<StremioVideo>? = null
+)
+
+/**
+ * One episode within a series meta response. Addons are inconsistent about
+ * whether they call the episode's text fields "title"/"name" or
+ * "overview"/"description" — both are accepted and coalesced when mapping to
+ * [com.mangotv.app.data.model.Episode] rather than betting on one spelling.
+ */
+@Serializable
+data class StremioVideo(
+    val id: String,
+    val title: String? = null,
+    val name: String? = null,
+    val season: Int? = null,
+    val episode: Int? = null,
+    val overview: String? = null,
+    val description: String? = null,
+    val thumbnail: String? = null
 )
 
 @Serializable

@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mangotv.app.data.model.Content
+import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.model.HomeSection
 import com.mangotv.app.navigation.MangoRoutes
 import com.mangotv.app.navigation.routeForNavLabel
@@ -148,24 +149,36 @@ private fun DetailContent(
                     onNavigateDownFromHero = { heroRegionFocused = false }
                 )
             }
-            item(key = "cast_and_similar") {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    CastRow(
-                        cast = content.cast,
-                        modifier = Modifier.weight(1f),
+            item(key = "seasons_or_cast_and_similar") {
+                // TV shows with real season/episode data get a season
+                // picker + episode list instead — cast and "similar" don't
+                // apply the same way once there's something more useful
+                // (and more central to actually watching the show) to show.
+                if (content.type == ContentType.TV_SHOW && content.seasons.isNotEmpty()) {
+                    SeasonsSection(
+                        seasons = content.seasons,
+                        modifier = Modifier.fillMaxWidth(),
                         onNavigateUpPastRow = { returnToHero() }
                     )
-                    if (similar.isNotEmpty()) {
-                        ContentRow(
-                            section = HomeSection(
-                                id = "similar",
-                                title = "You May Also Like",
-                                items = similar
-                            ),
-                            onItemClick = ::navigateToContent,
-                            modifier = Modifier.weight(2f),
+                } else {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        CastRow(
+                            cast = content.cast,
+                            modifier = Modifier.weight(1f),
                             onNavigateUpPastRow = { returnToHero() }
                         )
+                        if (similar.isNotEmpty()) {
+                            ContentRow(
+                                section = HomeSection(
+                                    id = "similar",
+                                    title = "You May Also Like",
+                                    items = similar
+                                ),
+                                onItemClick = ::navigateToContent,
+                                modifier = Modifier.weight(2f),
+                                onNavigateUpPastRow = { returnToHero() }
+                            )
+                        }
                     }
                 }
             }
