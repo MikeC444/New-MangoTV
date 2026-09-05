@@ -11,13 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.Person
@@ -32,15 +29,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mangotv.app.data.model.QualityTier
 import com.mangotv.app.data.model.ResolutionTier
 import com.mangotv.app.data.model.Stream
+import com.mangotv.app.ui.components.GlowPlayBadge
 import com.mangotv.app.ui.components.TvFocusSurface
 import com.mangotv.app.ui.theme.MangoAmber
+import com.mangotv.app.ui.theme.MangoAzure
 import com.mangotv.app.ui.theme.MangoBackground
-import com.mangotv.app.ui.theme.MangoCoral
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoSurfaceHigh
-import com.mangotv.app.ui.theme.MangoTangerine
+import com.mangotv.app.ui.theme.MangoTeal
 import com.mangotv.app.ui.theme.TextPrimary
 import com.mangotv.app.ui.theme.TextSecondary
 import com.mangotv.app.ui.theme.TextTertiary
@@ -67,11 +66,11 @@ fun SourceRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 QualityBadge(stream)
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(10.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -94,10 +93,10 @@ fun SourceRow(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    if (stream.seeders != null || stream.qualityLabel != null) {
+                    if (stream.seedersLabel != null || stream.qualityTier != null) {
                         Spacer(Modifier.height(6.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            stream.seeders?.let {
+                            stream.seedersLabel?.let {
                                 Icon(
                                     imageVector = Icons.Filled.Person,
                                     contentDescription = null,
@@ -114,17 +113,22 @@ fun SourceRow(
                                 )
                                 Spacer(Modifier.width(14.dp))
                             }
-                            stream.qualityLabel?.let {
+                            stream.qualityTier?.let { tier ->
+                                val tierColor = when (tier) {
+                                    QualityTier.VERY_HIGH, QualityTier.HIGH -> MangoTeal
+                                    QualityTier.GOOD -> MangoAzure
+                                    QualityTier.LOW -> TextTertiary
+                                }
                                 Icon(
                                     imageVector = Icons.Outlined.CheckCircle,
                                     contentDescription = null,
-                                    tint = MangoAmber,
+                                    tint = tierColor,
                                     modifier = Modifier.width(15.dp)
                                 )
                                 Spacer(Modifier.width(4.dp))
                                 Text(
-                                    text = it,
-                                    color = TextTertiary,
+                                    text = tier.label,
+                                    color = tierColor,
                                     style = MaterialTheme.typography.labelSmall,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -134,11 +138,11 @@ fun SourceRow(
                     }
                 }
 
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(10.dp))
 
                 Column(
                     horizontalAlignment = Alignment.End,
-                    modifier = Modifier.widthIn(max = 90.dp)
+                    modifier = Modifier.widthIn(max = 80.dp)
                 ) {
                     stream.sizeLabel?.let {
                         Text(
@@ -168,22 +172,9 @@ fun SourceRow(
                     }
                 }
 
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(8.dp))
 
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(MangoAmber.copy(alpha = 0.18f), CircleShape)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.PlayArrow,
-                        contentDescription = "Play this source",
-                        tint = MangoAmber,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(18.dp)
-                    )
-                }
+                GlowPlayBadge(size = 34.dp, glowSize = 46.dp, iconSize = 16.dp)
             }
         }
 
@@ -218,8 +209,8 @@ fun SourceRow(
 private fun QualityBadge(stream: Stream) {
     val color = when (stream.resolutionTier) {
         ResolutionTier.UHD_4K -> MangoAmber
-        ResolutionTier.FHD_1080P -> MangoTangerine
-        ResolutionTier.HD_720P -> MangoCoral
+        ResolutionTier.FHD_1080P -> MangoAzure
+        ResolutionTier.HD_720P -> MangoTeal
         ResolutionTier.OTHER -> TextTertiary
     }
     val badgeShape = RoundedCornerShape(8.dp)
@@ -227,7 +218,7 @@ private fun QualityBadge(stream: Stream) {
         modifier = Modifier
             .border(BorderStroke(1.dp, color), badgeShape)
             .background(MangoBackground, badgeShape)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(

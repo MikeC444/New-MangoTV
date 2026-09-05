@@ -18,21 +18,24 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mangotv.app.data.model.Content
+import com.mangotv.app.ui.components.GlowPlayBadge
 import com.mangotv.app.ui.components.HeroIconButton
 import com.mangotv.app.ui.components.rememberOpaqueImageRequest
+import com.mangotv.app.ui.theme.DividerSubtle
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoSurfaceHigh
@@ -53,10 +56,32 @@ fun SourcesInfoPanel(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
+        // Two stacked gradients (mirrors HeroSection's own pattern) rather
+        // than a flat scrim, so the backdrop reads as integrated into the
+        // dark UI instead of a pasted rectangle. Both reach fully opaque
+        // MangoBackground at the far edge so there's no seam against the
+        // right column's flat black background.
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MangoBackground.copy(alpha = 0.82f))
+                .background(
+                    Brush.verticalGradient(
+                        0f to MangoBackground.copy(alpha = 0.55f),
+                        0.5f to MangoBackground.copy(alpha = 0.75f),
+                        1f to MangoBackground
+                    )
+                )
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.horizontalGradient(
+                        0f to MangoBackground.copy(alpha = 0.35f),
+                        0.6f to MangoBackground.copy(alpha = 0.75f),
+                        1f to MangoBackground
+                    )
+                )
         )
 
         Column(modifier = Modifier.fillMaxSize().padding(28.dp)) {
@@ -68,13 +93,21 @@ fun SourcesInfoPanel(
 
             Spacer(Modifier.height(24.dp))
 
+            val posterShape = RoundedCornerShape(MangoDimens.CardCornerRadius)
             AsyncImage(
                 model = rememberOpaqueImageRequest(content.posterUrl),
                 contentDescription = content.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(width = 110.dp, height = 165.dp)
-                    .background(MangoSurfaceHigh, RoundedCornerShape(MangoDimens.CardCornerRadius))
+                    // shadow (unclipped) -> clip -> background -> border:
+                    // the same ordering TvFocusSurface already established,
+                    // since clipping before applying elevation would cut
+                    // the shadow away entirely.
+                    .shadow(elevation = 12.dp, shape = posterShape, clip = false)
+                    .clip(posterShape)
+                    .background(MangoSurfaceHigh, posterShape)
+                    .border(BorderStroke(1.dp, DividerSubtle), posterShape)
             )
 
             Spacer(Modifier.height(20.dp))
@@ -175,20 +208,7 @@ fun SourcesInfoPanel(
                     )
                 }
                 Spacer(Modifier.width(12.dp))
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(percent = 50))
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.PlayArrow,
-                        contentDescription = null,
-                        tint = TextPrimary,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(18.dp)
-                    )
-                }
+                GlowPlayBadge(size = 36.dp, glowSize = 56.dp, iconSize = 18.dp)
             }
         }
     }

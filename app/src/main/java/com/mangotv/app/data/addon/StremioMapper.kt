@@ -5,6 +5,7 @@ import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.model.Episode
 import com.mangotv.app.data.model.Genre
+import com.mangotv.app.data.model.QualityTier
 import com.mangotv.app.data.model.ResolutionTier
 import com.mangotv.app.data.model.Season
 import com.mangotv.app.data.model.Stream
@@ -108,6 +109,9 @@ private val SIZE_PATTERN = Regex("(\\d+(?:\\.\\d+)?)\\s?(GB|MB)", RegexOption.IG
 private val SEEDERS_EMOJI = Regex("👤\\s?(\\d+)")
 private val SEEDERS_WORD = Regex("(\\d+)\\s*(?:seeds?|peers?)\\b", RegexOption.IGNORE_CASE)
 
+private fun formatSeederCount(count: Int): String =
+    if (count >= 1000) "%.1fK".format(count / 1000.0) else count.toString()
+
 fun StremioStream.toStream(providerId: String, providerLabel: String): Stream {
     val haystack = listOfNotNull(title, name, description).joinToString("\n")
 
@@ -141,12 +145,13 @@ fun StremioStream.toStream(providerId: String, providerLabel: String): Stream {
 
     val seeders = (SEEDERS_EMOJI.find(haystack) ?: SEEDERS_WORD.find(haystack))
         ?.groupValues?.get(1)?.toIntOrNull()
-    val qualityLabel = seeders?.let {
+    val seedersLabel = seeders?.let { formatSeederCount(it) }
+    val qualityTier = seeders?.let {
         when {
-            it >= 500 -> "Very High Quality"
-            it >= 100 -> "High Quality"
-            it >= 20 -> "Good Quality"
-            else -> "Low Quality"
+            it >= 500 -> QualityTier.VERY_HIGH
+            it >= 100 -> QualityTier.HIGH
+            it >= 20 -> QualityTier.GOOD
+            else -> QualityTier.LOW
         }
     }
 
@@ -173,7 +178,8 @@ fun StremioStream.toStream(providerId: String, providerLabel: String): Stream {
         sizeLabel = sizeLabel,
         sizeBytes = sizeBytes,
         seeders = seeders,
-        qualityLabel = qualityLabel,
+        seedersLabel = seedersLabel,
+        qualityTier = qualityTier,
         url = url,
         infoHash = infoHash,
         ytId = ytId

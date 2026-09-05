@@ -10,6 +10,13 @@ package com.mangotv.app.data.model
 
 enum class ResolutionTier { UHD_4K, FHD_1080P, HD_720P, OTHER }
 
+enum class QualityTier(val label: String) {
+    VERY_HIGH("Very High Quality"),
+    HIGH("High Quality"),
+    GOOD("Good Quality"),
+    LOW("Low Quality")
+}
+
 data class Stream(
     val id: String,
     val providerId: String,
@@ -23,7 +30,8 @@ data class Stream(
     val sizeLabel: String? = null,
     val sizeBytes: Long? = null,
     val seeders: Int? = null,
-    val qualityLabel: String? = null,
+    val seedersLabel: String? = null,
+    val qualityTier: QualityTier? = null,
     val url: String? = null,
     val infoHash: String? = null,
     val ytId: String? = null

@@ -18,6 +18,13 @@ val MangoBrandGradient = Brush.linearGradient(
     colors = listOf(MangoAmber, MangoTangerine, MangoCoral)
 )
 
+// Per-tier accent colors for source/quality badges — same saturation and
+// brightness family as the amber/tangerine/coral gradient above, extended
+// into cool hues so 4K/1080p/720p read as distinct tiers rather than
+// shades of the same orange.
+val MangoAzure = Color(0xFF3D8BFF)
+val MangoTeal = Color(0xFF2DD9A8)
+
 fun mangoBrandGradient(angleColors: List<Color> = listOf(MangoAmber, MangoCoral)) =
     Brush.linearGradient(colors = angleColors)
 

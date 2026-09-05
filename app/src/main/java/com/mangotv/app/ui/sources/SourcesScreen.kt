@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Info
@@ -41,9 +40,9 @@ import com.mangotv.app.ui.components.FullScreenErrorState
 import com.mangotv.app.ui.components.HomeLoadingSkeleton
 import com.mangotv.app.ui.components.MangoButton
 import com.mangotv.app.ui.components.MangoButtonStyle
+import com.mangotv.app.ui.theme.DividerSubtle
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
-import com.mangotv.app.ui.theme.MangoSurfaceHigh
 import com.mangotv.app.ui.theme.TextPrimary
 import com.mangotv.app.ui.theme.TextSecondary
 import com.mangotv.app.ui.theme.TextTertiary
@@ -109,13 +108,13 @@ private fun SourcesContent(
             content = state.content,
             onBack = onBack,
             modifier = Modifier
-                .weight(0.32f)
+                .weight(0.35f)
                 .fillMaxHeight()
         )
 
         Column(
             modifier = Modifier
-                .weight(0.68f)
+                .weight(0.65f)
                 .fillMaxSize()
                 .padding(
                     horizontal = MangoDimens.ScreenPaddingHorizontal,
@@ -215,39 +214,48 @@ private fun SourcesEmptyState(onManageAddons: () -> Unit, modifier: Modifier = M
 
 @Composable
 private fun SafetyBar() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MangoSurfaceHigh, RoundedCornerShape(MangoDimens.CardCornerRadius))
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Security,
-            contentDescription = null,
-            tint = TextSecondary,
-            modifier = Modifier.height(22.dp)
+    // A hairline divider rather than a filled card — reads as part of the
+    // screen, not a separate popped-out alert box.
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(DividerSubtle)
         )
-        Spacer(Modifier.width(14.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Safe & secure",
-                color = TextPrimary,
-                style = MaterialTheme.typography.labelLarge
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Security,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.height(22.dp)
             )
-            Text(
-                text = "All sources are scanned for your safety",
-                color = TextSecondary,
-                style = MaterialTheme.typography.labelSmall
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Safe & secure",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.labelLarge
+                )
+                Text(
+                    text = "All sources are scanned for your safety",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            MangoButton(
+                text = "How it works",
+                icon = Icons.Filled.Info,
+                onClick = {},
+                style = MangoButtonStyle.GLASS,
+                compact = true
             )
         }
-        Spacer(Modifier.width(16.dp))
-        MangoButton(
-            text = "How it works",
-            icon = Icons.Filled.Info,
-            onClick = {},
-            style = MangoButtonStyle.GLASS,
-            compact = true
-        )
     }
 }
