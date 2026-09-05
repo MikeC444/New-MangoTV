@@ -23,7 +23,7 @@ import com.mangotv.app.ui.theme.MangoBrandGradient
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.TextPrimary
 
-enum class MangoButtonStyle { FILLED, GLASS }
+enum class MangoButtonStyle { FILLED, GLASS, LIGHT }
 
 @Composable
 fun MangoButton(
@@ -41,18 +41,36 @@ fun MangoButton(
     // buttons are completely unaffected.
     compact: Boolean = false
 ) {
-    val contentColor = if (style == MangoButtonStyle.FILLED) MangoBackground else TextPrimary
+    val contentColor = when (style) {
+        MangoButtonStyle.FILLED -> MangoBackground
+        MangoButtonStyle.LIGHT -> Color.Black
+        MangoButtonStyle.GLASS -> TextPrimary
+    }
     val buttonHeight = if (compact) 40.dp else 52.dp
     val horizontalPadding = if (compact) 16.dp else 26.dp
     val iconHeight = if (compact) 16.dp else 22.dp
     val iconTextSpacing = if (compact) 6.dp else 10.dp
     val textStyle = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
 
+    // LIGHT is a full pill (used for the detail page's restyled Play
+    // button); FILLED/GLASS keep the app's standard corner radius, used
+    // everywhere else (Home's hero, Settings) — this doesn't change their
+    // existing shape.
+    val shape = if (style == MangoButtonStyle.LIGHT) {
+        RoundedCornerShape(percent = 50)
+    } else {
+        RoundedCornerShape(MangoDimens.ButtonCornerRadius)
+    }
+
     TvFocusSurface(
         onClick = onClick,
         modifier = modifier.height(buttonHeight),
-        shape = RoundedCornerShape(MangoDimens.ButtonCornerRadius),
-        backgroundColor = if (style == MangoButtonStyle.GLASS) Color.White.copy(alpha = 0.12f) else Color.Transparent,
+        shape = shape,
+        backgroundColor = when (style) {
+            MangoButtonStyle.GLASS -> Color.White.copy(alpha = 0.12f)
+            MangoButtonStyle.LIGHT -> Color.White
+            MangoButtonStyle.FILLED -> Color.Transparent
+        },
         backgroundBrush = if (style == MangoButtonStyle.FILLED) MangoBrandGradient else null,
         focusRequester = focusRequester,
         focusUp = focusUp,

@@ -184,6 +184,7 @@ private fun DetailContent(
                     content = content,
                     playFocusRequester = playFocusRequester,
                     onPlay = {},
+                    onWatched = {},
                     onWatchlist = {},
                     onMore = {},
                     navUpFocusRequester = navFocusRequester,

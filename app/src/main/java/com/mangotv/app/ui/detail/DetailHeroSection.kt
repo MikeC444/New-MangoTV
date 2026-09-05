@@ -21,9 +21,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +35,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -46,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mangotv.app.data.model.Content
+import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.ui.components.MangoButton
 import com.mangotv.app.ui.components.MangoButtonStyle
 import com.mangotv.app.ui.components.TvFocusSurface
@@ -75,6 +78,7 @@ fun DetailHeroSection(
     content: Content,
     playFocusRequester: FocusRequester,
     onPlay: () -> Unit,
+    onWatched: () -> Unit,
     onWatchlist: () -> Unit,
     onMore: () -> Unit,
     modifier: Modifier = Modifier,
@@ -101,6 +105,20 @@ fun DetailHeroSection(
         screenHeightDp * 0.82f
     }
     val bottomPadding = if (compact) 24.dp else 56.dp
+
+    // TV shows show which episode Play will start — the first episode of
+    // the first season, since there's no watch-progress tracking yet to
+    // pick up where the user left off. Movies just say "Play".
+    val playButtonText = if (content.type == ContentType.TV_SHOW) {
+        val firstEpisode = content.seasons.firstOrNull()?.episodes?.firstOrNull()
+        if (firstEpisode != null) {
+            "Play S${firstEpisode.seasonNumber}E${firstEpisode.episodeNumber}"
+        } else {
+            "Play"
+        }
+    } else {
+        "Play"
+    }
 
     Box(
         modifier = modifier
@@ -284,41 +302,66 @@ fun DetailHeroSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 MangoButton(
-                    text = "Play",
+                    text = playButtonText,
                     icon = Icons.Filled.PlayArrow,
                     onClick = onPlay,
-                    style = MangoButtonStyle.FILLED,
+                    style = MangoButtonStyle.LIGHT,
                     focusRequester = playFocusRequester,
                     focusUp = navUpFocusRequester,
                     bringIntoViewOnFocus = false,
                     compact = compact
                 )
                 Spacer(Modifier.width(if (compact) 10.dp else 16.dp))
-                MangoButton(
-                    text = "Watchlist",
-                    icon = Icons.Filled.Add,
-                    onClick = onWatchlist,
-                    style = MangoButtonStyle.GLASS,
+                HeroIconButton(
+                    icon = Icons.Outlined.CheckCircle,
+                    contentDescription = "Mark as watched",
+                    onClick = onWatched,
                     focusUp = navUpFocusRequester,
-                    bringIntoViewOnFocus = false,
                     compact = compact
                 )
                 Spacer(Modifier.width(if (compact) 10.dp else 16.dp))
-                TvFocusSurface(
-                    onClick = onMore,
-                    shape = CircleShape,
-                    backgroundColor = Color.White.copy(alpha = 0.12f),
+                HeroIconButton(
+                    icon = Icons.Filled.Add,
+                    contentDescription = "Add to Watchlist",
+                    onClick = onWatchlist,
                     focusUp = navUpFocusRequester,
-                    bringIntoViewOnFocus = false
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.MoreHoriz,
-                        contentDescription = "More options",
-                        tint = TextPrimary,
-                        modifier = Modifier.padding(if (compact) 10.dp else 14.dp)
-                    )
-                }
+                    compact = compact
+                )
+                Spacer(Modifier.width(if (compact) 10.dp else 16.dp))
+                HeroIconButton(
+                    icon = Icons.Filled.MoreVert,
+                    contentDescription = "More options",
+                    onClick = onMore,
+                    focusUp = navUpFocusRequester,
+                    compact = compact
+                )
             }
         }
+    }
+}
+
+/** Small circular icon button used for Watched/Watchlist/More, matching the
+ * dark translucent circles next to the pill-shaped Play button. */
+@Composable
+private fun HeroIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    focusUp: FocusRequester?,
+    compact: Boolean
+) {
+    TvFocusSurface(
+        onClick = onClick,
+        shape = CircleShape,
+        backgroundColor = Color.White.copy(alpha = 0.12f),
+        focusUp = focusUp,
+        bringIntoViewOnFocus = false
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = TextPrimary,
+            modifier = Modifier.padding(if (compact) 10.dp else 14.dp)
+        )
     }
 }
