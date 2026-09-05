@@ -69,7 +69,7 @@ fun SourceFilterBar(
         // pills themselves are sized to comfortably fit on one row.
         LazyRow(
             modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             items(SourceFilter.entries) { filter ->
                 FilterPill(
@@ -79,7 +79,7 @@ fun SourceFilterBar(
                 )
             }
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(10.dp))
         // No overlay/dropdown component exists anywhere in this app, and
         // Compose's Material3 DropdownMenu has no built-in D-pad focus
         // handling — clicking this cycles through sort options instead of
@@ -111,10 +111,10 @@ private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
             text = label,
             color = contentColor,
             fontWeight = if (focused || selected) FontWeight.Bold else FontWeight.Medium,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
             overflow = TextOverflow.Clip,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp)
         )
     }
 }
@@ -128,23 +128,23 @@ private fun SortPill(sort: SourceSort, onClick: () -> Unit) {
         bringIntoViewOnFocus = false
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Sort by: ${sort.label}",
                 color = TextPrimary,
                 fontWeight = FontWeight.Medium,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Clip
             )
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(5.dp))
             Icon(
                 imageVector = Icons.Filled.ExpandMore,
                 contentDescription = "Change sort order",
                 tint = TextSecondary,
-                modifier = Modifier.width(16.dp)
+                modifier = Modifier.width(14.dp)
             )
         }
     }

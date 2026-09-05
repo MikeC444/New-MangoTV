@@ -84,14 +84,14 @@ fun SourcesInfoPanel(
                 )
         )
 
-        Column(modifier = Modifier.fillMaxSize().padding(28.dp)) {
+        Column(modifier = Modifier.fillMaxSize().padding(22.dp)) {
             HeroIconButton(
                 icon = Icons.Filled.ArrowBack,
                 contentDescription = "Back",
                 onClick = onBack
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
             val posterShape = RoundedCornerShape(MangoDimens.CardCornerRadius)
             AsyncImage(
@@ -99,59 +99,59 @@ fun SourcesInfoPanel(
                 contentDescription = content.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(width = 110.dp, height = 165.dp)
+                    .size(width = 84.dp, height = 126.dp)
                     // shadow (unclipped) -> clip -> background -> border:
                     // the same ordering TvFocusSurface already established,
                     // since clipping before applying elevation would cut
                     // the shadow away entirely.
-                    .shadow(elevation = 12.dp, shape = posterShape, clip = false)
+                    .shadow(elevation = 10.dp, shape = posterShape, clip = false)
                     .clip(posterShape)
                     .background(MangoSurfaceHigh, posterShape)
                     .border(BorderStroke(1.dp, DividerSubtle), posterShape)
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(14.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 content.year?.let {
                     Text(
                         text = it.toString(),
                         color = TextSecondary,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
                 content.ageRating?.let { rating ->
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
                             .border(BorderStroke(1.dp, TextTertiary), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .padding(horizontal = 5.dp, vertical = 1.dp)
                     ) {
                         Text(text = rating, color = TextSecondary, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
 
             if (content.logoUrl != null) {
                 AsyncImage(
                     model = content.logoUrl,
                     contentDescription = content.title,
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(width = 260.dp, height = 70.dp)
+                    modifier = Modifier.size(width = 200.dp, height = 54.dp)
                 )
             } else {
                 Text(
                     text = content.title,
                     color = TextPrimary,
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.headlineSmall,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
 
             val genresAndRuntime = buildList {
                 if (content.genres.isNotEmpty()) add(content.genres.joinToString("  •  ") { it.name })
@@ -161,17 +161,17 @@ fun SourcesInfoPanel(
                 Text(
                     text = genresAndRuntime.joinToString("   "),
                     color = TextSecondary,
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.labelLarge
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(10.dp))
             }
 
             if (content.description.isNotBlank()) {
                 Text(
                     text = content.description,
                     color = TextSecondary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 5,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 4,
                     overflow = TextOverflow.Ellipsis
                 )
             }
@@ -182,7 +182,7 @@ fun SourcesInfoPanel(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MangoSurfaceHigh, RoundedCornerShape(MangoDimens.CardCornerRadius))
-                    .padding(16.dp),
+                    .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -191,24 +191,24 @@ fun SourcesInfoPanel(
                             imageVector = Icons.Filled.Info,
                             contentDescription = null,
                             tint = TextSecondary,
-                            modifier = Modifier.width(16.dp)
+                            modifier = Modifier.width(14.dp)
                         )
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(5.dp))
                         Text(
                             text = "What are sources?",
                             color = TextPrimary,
-                            style = MaterialTheme.typography.labelLarge
+                            style = MaterialTheme.typography.labelMedium
                         )
                     }
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(4.dp))
                     Text(
                         text = "Sources are different streams or files available online. Choose the one that works best for you.",
                         color = TextSecondary,
                         style = MaterialTheme.typography.labelSmall
                     )
                 }
-                Spacer(Modifier.width(12.dp))
-                GlowPlayBadge(size = 36.dp, glowSize = 56.dp, iconSize = 18.dp)
+                Spacer(Modifier.width(10.dp))
+                GlowPlayBadge(size = 30.dp, glowSize = 46.dp, iconSize = 15.dp)
             }
         }
     }

@@ -42,7 +42,6 @@ import com.mangotv.app.ui.components.MangoButton
 import com.mangotv.app.ui.components.MangoButtonStyle
 import com.mangotv.app.ui.theme.DividerSubtle
 import com.mangotv.app.ui.theme.MangoBackground
-import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.TextPrimary
 import com.mangotv.app.ui.theme.TextSecondary
 import com.mangotv.app.ui.theme.TextTertiary
@@ -116,24 +115,26 @@ private fun SourcesContent(
             modifier = Modifier
                 .weight(0.65f)
                 .fillMaxSize()
-                .padding(
-                    horizontal = MangoDimens.ScreenPaddingHorizontal,
-                    vertical = MangoDimens.ScreenPaddingVertical
-                )
+                // Deliberately smaller than MangoDimens.ScreenPaddingHorizontal/
+                // Vertical (this screen's own local values, not the shared
+                // tokens other screens use) — this page packs a header, filter
+                // bar, several rows and a bottom bar into one non-scrolling
+                // view, so it needs tighter margins than a normal content page.
+                .padding(horizontal = 36.dp, vertical = 22.dp)
         ) {
             Text(
                 text = "Select a Source",
                 color = TextPrimary,
-                style = MaterialTheme.typography.headlineLarge
+                style = MaterialTheme.typography.headlineSmall
             )
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = "Choose the best quality and server for your stream.",
                 color = TextSecondary,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.labelLarge
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
             SourceFilterBar(
                 selectedFilter = selectedFilter,
@@ -142,7 +143,7 @@ private fun SourcesContent(
                 onSortChange = { selectedSort = it }
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(14.dp))
 
             if (sorted.isEmpty()) {
                 SourcesEmptyState(onManageAddons = onManageAddons, modifier = Modifier.weight(1f))
@@ -153,8 +154,8 @@ private fun SourcesContent(
                     // above its row via a negative offset — has room to
                     // show fully instead of being clipped by the list's own
                     // top edge when that row is first/near the top.
-                    contentPadding = PaddingValues(top = 14.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    contentPadding = PaddingValues(top = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(sorted, key = { it.id }) { stream ->
                         SourceRow(
@@ -169,7 +170,7 @@ private fun SourcesContent(
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(14.dp))
 
             SafetyBar()
         }
@@ -226,21 +227,21 @@ private fun SafetyBar() {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp),
+                .padding(top = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = Icons.Filled.Security,
                 contentDescription = null,
                 tint = TextSecondary,
-                modifier = Modifier.height(22.dp)
+                modifier = Modifier.height(18.dp)
             )
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Safe & secure",
                     color = TextPrimary,
-                    style = MaterialTheme.typography.labelLarge
+                    style = MaterialTheme.typography.labelMedium
                 )
                 Text(
                     text = "All sources are scanned for your safety",
@@ -248,7 +249,7 @@ private fun SafetyBar() {
                     style = MaterialTheme.typography.labelSmall
                 )
             }
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(14.dp))
             MangoButton(
                 text = "How it works",
                 icon = Icons.Filled.Info,

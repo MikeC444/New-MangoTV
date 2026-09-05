@@ -66,44 +66,44 @@ fun SourceRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 QualityBadge(stream)
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(8.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stream.releaseTitle,
                         color = TextPrimary,
                         fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.labelLarge,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     val subtitle = listOfNotNull(stream.codec, stream.sourceTag, stream.audioTag)
                         .joinToString("  •  ")
                     if (subtitle.isNotEmpty()) {
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(3.dp))
                         Text(
                             text = subtitle,
                             color = TextSecondary,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.labelMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
                     if (stream.seedersLabel != null || stream.qualityTier != null) {
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             stream.seedersLabel?.let {
                                 Icon(
                                     imageVector = Icons.Filled.Person,
                                     contentDescription = null,
                                     tint = TextTertiary,
-                                    modifier = Modifier.width(15.dp)
+                                    modifier = Modifier.width(13.dp)
                                 )
-                                Spacer(Modifier.width(4.dp))
+                                Spacer(Modifier.width(3.dp))
                                 Text(
                                     text = "$it seeders",
                                     color = TextTertiary,
@@ -111,7 +111,7 @@ fun SourceRow(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                Spacer(Modifier.width(14.dp))
+                                Spacer(Modifier.width(10.dp))
                             }
                             stream.qualityTier?.let { tier ->
                                 val tierColor = when (tier) {
@@ -123,9 +123,9 @@ fun SourceRow(
                                     imageVector = Icons.Outlined.CheckCircle,
                                     contentDescription = null,
                                     tint = tierColor,
-                                    modifier = Modifier.width(15.dp)
+                                    modifier = Modifier.width(13.dp)
                                 )
-                                Spacer(Modifier.width(4.dp))
+                                Spacer(Modifier.width(3.dp))
                                 Text(
                                     text = tier.label,
                                     color = tierColor,
@@ -138,30 +138,30 @@ fun SourceRow(
                     }
                 }
 
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.width(8.dp))
 
                 Column(
                     horizontalAlignment = Alignment.End,
-                    modifier = Modifier.widthIn(max = 80.dp)
+                    modifier = Modifier.widthIn(max = 72.dp)
                 ) {
                     stream.sizeLabel?.let {
                         Text(
                             text = it,
                             color = TextSecondary,
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.labelMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(3.dp))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Filled.Wifi,
                             contentDescription = null,
                             tint = TextTertiary,
-                            modifier = Modifier.width(14.dp)
+                            modifier = Modifier.width(12.dp)
                         )
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(3.dp))
                         Text(
                             text = stream.providerLabel,
                             color = TextTertiary,
@@ -172,9 +172,9 @@ fun SourceRow(
                     }
                 }
 
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(6.dp))
 
-                GlowPlayBadge(size = 34.dp, glowSize = 46.dp, iconSize = 16.dp)
+                GlowPlayBadge(size = 28.dp, glowSize = 38.dp, iconSize = 13.dp)
             }
         }
 
@@ -213,19 +213,19 @@ private fun QualityBadge(stream: Stream) {
         ResolutionTier.HD_720P -> MangoTeal
         ResolutionTier.OTHER -> TextTertiary
     }
-    val badgeShape = RoundedCornerShape(8.dp)
+    val badgeShape = RoundedCornerShape(6.dp)
     Column(
         modifier = Modifier
             .border(BorderStroke(1.dp, color), badgeShape)
             .background(MangoBackground, badgeShape)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(horizontal = 7.dp, vertical = 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = stream.qualityBadge,
             color = color,
             fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
             overflow = TextOverflow.Clip
         )
