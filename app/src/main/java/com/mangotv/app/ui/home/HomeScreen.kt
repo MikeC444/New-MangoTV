@@ -1,10 +1,12 @@
 package com.mangotv.app.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,10 +18,14 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -31,6 +37,7 @@ import com.mangotv.app.ui.components.HomeEmptyState
 import com.mangotv.app.ui.components.HomeLoadingSkeleton
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(
@@ -90,8 +97,10 @@ private fun HomeContent(
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
     val playFocusRequester = remember { FocusRequester() }
     val homeNavFocusRequester = remember { FocusRequester() }
+    val scrollTopAnchorFocusRequester = remember { FocusRequester() }
     var hasRequestedInitialFocus by remember { mutableStateOf(false) }
 
     val isScrolled by remember {
@@ -112,6 +121,21 @@ private fun HomeContent(
             state = listState,
             modifier = Modifier.fillMaxSize()
         ) {
+            // A zero-footprint focus waypoint between the nav bar and the
+            // hero. If the hero's own auto-scroll-into-view ever leaves the
+            // list somewhere other than true index 0 (e.g. after an addon
+            // install remounts this screen), pressing UP from the hero
+            // buttons lands here and forces the list back to the real top —
+            // a deterministic recovery path that doesn't depend on guessing
+            // exactly why the scroll drifted.
+            item(key = "scroll_top_anchor") {
+                ScrollToTopAnchor(
+                    focusRequester = scrollTopAnchorFocusRequester,
+                    focusUp = homeNavFocusRequester,
+                    focusDown = playFocusRequester,
+                    onFocused = { coroutineScope.launch { listState.scrollToItem(0, 0) } }
+                )
+            }
             item(key = "hero") {
                 HeroSection(
                     items = state.heroItems,
@@ -119,7 +143,7 @@ private fun HomeContent(
                     onPlay = {},
                     onAddToList = {},
                     onMoreInfo = {},
-                    navUpFocusRequester = homeNavFocusRequester
+                    navUpFocusRequester = scrollTopAnchorFocusRequester
                 )
             }
             items(state.sections, key = { it.id }) { section ->
@@ -144,4 +168,31 @@ private fun HomeContent(
             onItemClick = { label -> routeForNavLabel(label)?.let(onNavigate) }
         )
     }
+}
+
+/**
+ * Invisible (no size beyond a hairline, no focus visuals) focusable item
+ * sitting between the nav bar and the hero in the list. Its only job is to
+ * force the list back to true index 0 the moment it's focused — see the
+ * comment at its call site for why this exists.
+ */
+@Composable
+private fun ScrollToTopAnchor(
+    focusRequester: FocusRequester,
+    onFocused: () -> Unit,
+    focusUp: FocusRequester? = null,
+    focusDown: FocusRequester? = null
+) {
+    var anchorModifier = Modifier
+        .fillMaxWidth()
+        .height(1.dp)
+        .focusRequester(focusRequester)
+        .onFocusChanged { state -> if (state.isFocused) onFocused() }
+    if (focusUp != null || focusDown != null) {
+        anchorModifier = anchorModifier.focusProperties {
+            focusUp?.let { up = it }
+            focusDown?.let { down = it }
+        }
+    }
+    Box(modifier = anchorModifier.focusable())
 }
