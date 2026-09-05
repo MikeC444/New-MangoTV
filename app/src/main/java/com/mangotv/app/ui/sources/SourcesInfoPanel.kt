@@ -54,20 +54,23 @@ fun SourcesInfoPanel(
             model = rememberOpaqueImageRequest(content.backdropUrl ?: content.posterUrl),
             contentDescription = null,
             contentScale = ContentScale.Crop,
+            alignment = Alignment.Center,
             modifier = Modifier.fillMaxSize()
         )
         // Two stacked gradients (mirrors HeroSection's own pattern) rather
         // than a flat scrim, so the backdrop reads as integrated into the
         // dark UI instead of a pasted rectangle. Both reach fully opaque
         // MangoBackground at the far edge so there's no seam against the
-        // right column's flat black background.
+        // right column's flat black background — lightened near the near
+        // edge (top-left) so the photo itself reads clearly instead of
+        // being mostly obscured.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to MangoBackground.copy(alpha = 0.55f),
-                        0.5f to MangoBackground.copy(alpha = 0.75f),
+                        0f to MangoBackground.copy(alpha = 0.2f),
+                        0.5f to MangoBackground.copy(alpha = 0.45f),
                         1f to MangoBackground
                     )
                 )
@@ -77,8 +80,8 @@ fun SourcesInfoPanel(
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        0f to MangoBackground.copy(alpha = 0.35f),
-                        0.6f to MangoBackground.copy(alpha = 0.75f),
+                        0f to MangoBackground.copy(alpha = 0.1f),
+                        0.6f to MangoBackground.copy(alpha = 0.5f),
                         1f to MangoBackground
                     )
                 )
