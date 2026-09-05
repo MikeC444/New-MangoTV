@@ -45,7 +45,13 @@ class StremioAddonClient {
     suspend fun fetchStreams(manifestUrl: String, type: String, id: String): List<StremioStream> =
         withContext(Dispatchers.IO) {
             val base = AddonUrl.resourceBase(manifestUrl)
-            val url = "$base/stream/$type/${encode(id)}.json"
+            // Series stream ids are "imdbId:season:episode" — encoding the
+            // whole id in one pass would percent-encode the colons
+            // themselves, breaking the literal path segment addons expect.
+            // Encoding each part separately preserves them; a plain
+            // colon-free movie id is unaffected (single-element split).
+            val encodedId = id.split(":").joinToString(":") { encode(it) }
+            val url = "$base/stream/$type/$encodedId.json"
             val body = get(url)
             json.decodeFromString(StremioStreamResponse.serializer(), body).streams
         }

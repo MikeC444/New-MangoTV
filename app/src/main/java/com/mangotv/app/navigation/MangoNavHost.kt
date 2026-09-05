@@ -9,6 +9,7 @@ import com.mangotv.app.ui.home.HomeScreen
 import com.mangotv.app.ui.settings.AddAddonScreen
 import com.mangotv.app.ui.settings.AddonsScreen
 import com.mangotv.app.ui.settings.SettingsScreen
+import com.mangotv.app.ui.sources.SourcesScreen
 
 @Composable
 fun MangoNavHost() {
@@ -41,6 +42,12 @@ fun MangoNavHost() {
         composable(MangoRoutes.DETAIL_PATTERN) {
             DetailScreen(
                 onNavigate = { route -> navController.navigate(route) }
+            )
+        }
+        composable(MangoRoutes.SOURCES_PATTERN) {
+            SourcesScreen(
+                onNavigate = { route -> navController.navigate(route) },
+                onBack = { navController.popBackStack() }
             )
         }
     }

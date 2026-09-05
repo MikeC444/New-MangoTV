@@ -2,10 +2,12 @@ package com.mangotv.app.data.provider
 
 import com.mangotv.app.data.addon.StremioAddonClient
 import com.mangotv.app.data.addon.toContent
+import com.mangotv.app.data.addon.toStream
 import com.mangotv.app.data.model.AddonManifest
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.model.HomeSection
+import com.mangotv.app.data.model.Stream
 
 private val SUPPORTED_CATALOG_TYPES = setOf("movie", "series")
 
@@ -54,5 +56,13 @@ class StremioAddonProvider(
         return runCatching { client.fetchMeta(manifestUrl, stremioType, id) }
             .getOrNull()
             ?.toContent(providerId = this.id)
+    }
+
+    override suspend fun getStreams(type: ContentType, id: String, season: Int?, episode: Int?): List<Stream> {
+        val stremioType = if (type == ContentType.TV_SHOW) "series" else "movie"
+        val requestId = if (season != null && episode != null) "$id:$season:$episode" else id
+        return runCatching { client.fetchStreams(manifestUrl, stremioType, requestId) }
+            .getOrDefault(emptyList())
+            .map { it.toStream(providerId = this.id, providerLabel = this.name) }
     }
 }

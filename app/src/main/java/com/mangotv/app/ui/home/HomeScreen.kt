@@ -178,7 +178,11 @@ private fun HomeContent(
                 HeroSection(
                     items = state.heroItems,
                     playFocusRequester = playFocusRequester,
-                    onPlay = {},
+                    onPlay = { content ->
+                        content.providerId?.let { pid ->
+                            onNavigate(MangoRoutes.sources(pid, content.type, content.id))
+                        }
+                    },
                     onAddToList = {},
                     onMoreInfo = ::navigateToContent,
                     navUpFocusRequester = homeNavFocusRequester,

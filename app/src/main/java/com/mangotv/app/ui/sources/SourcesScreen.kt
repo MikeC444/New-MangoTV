@@ -1,0 +1,240 @@
+package com.mangotv.app.ui.sources
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mangotv.app.data.model.Stream
+import com.mangotv.app.navigation.MangoRoutes
+import com.mangotv.app.ui.components.FullScreenErrorState
+import com.mangotv.app.ui.components.HomeLoadingSkeleton
+import com.mangotv.app.ui.components.MangoButton
+import com.mangotv.app.ui.components.MangoButtonStyle
+import com.mangotv.app.ui.theme.MangoBackground
+import com.mangotv.app.ui.theme.MangoDimens
+import com.mangotv.app.ui.theme.MangoSurfaceHigh
+import com.mangotv.app.ui.theme.TextPrimary
+import com.mangotv.app.ui.theme.TextSecondary
+import com.mangotv.app.ui.theme.TextTertiary
+
+@Composable
+fun SourcesScreen(
+    onNavigate: (String) -> Unit,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: SourcesViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MangoBackground)
+    ) {
+        when (val state = uiState) {
+            is SourcesUiState.Loading -> HomeLoadingSkeleton()
+            is SourcesUiState.Error -> FullScreenErrorState(
+                message = state.message,
+                onRetry = viewModel::load
+            )
+            is SourcesUiState.Loaded -> SourcesContent(
+                state = state,
+                onBack = onBack,
+                onManageAddons = { onNavigate(MangoRoutes.SETTINGS_ADDONS) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SourcesContent(
+    state: SourcesUiState.Loaded,
+    onBack: () -> Unit,
+    onManageAddons: () -> Unit
+) {
+    var selectedFilter by remember { mutableStateOf(SourceFilter.ALL) }
+    var selectedSort by remember { mutableStateOf(SourceSort.QUALITY) }
+
+    val filtered = remember(state.streams, selectedFilter) {
+        val tier = selectedFilter.tier
+        if (tier == null) state.streams else state.streams.filter { it.resolutionTier == tier }
+    }
+    val sorted = remember(filtered, selectedSort) {
+        when (selectedSort) {
+            SourceSort.QUALITY -> filtered.sortedWith(
+                compareBy<Stream> { it.resolutionTier.ordinal }.thenByDescending { it.seeders ?: -1 }
+            )
+            SourceSort.SEEDERS -> filtered.sortedByDescending { it.seeders ?: -1 }
+            SourceSort.SIZE -> filtered.sortedByDescending { it.sizeBytes ?: -1 }
+        }
+    }
+
+    Row(modifier = Modifier.fillMaxSize()) {
+        SourcesInfoPanel(
+            content = state.content,
+            onBack = onBack,
+            modifier = Modifier.width(420.dp)
+        )
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxSize()
+                .padding(
+                    horizontal = MangoDimens.ScreenPaddingHorizontal,
+                    vertical = MangoDimens.ScreenPaddingVertical
+                )
+        ) {
+            Text(
+                text = "Select a Source",
+                color = TextPrimary,
+                style = MaterialTheme.typography.headlineLarge
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "Choose the best quality and server for your stream.",
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            SourceFilterBar(
+                selectedFilter = selectedFilter,
+                onFilterChange = { selectedFilter = it },
+                selectedSort = selectedSort,
+                onSortChange = { selectedSort = it }
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            if (sorted.isEmpty()) {
+                SourcesEmptyState(onManageAddons = onManageAddons, modifier = Modifier.weight(1f))
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    items(sorted, key = { it.id }) { stream ->
+                        SourceRow(
+                            stream = stream,
+                            isRecommended = stream.id == state.recommendedStreamId,
+                            // No player exists yet — selecting a source is a
+                            // stub for now, same as every other not-yet-built
+                            // action in this app (Watchlist, Mark as Watched).
+                            onClick = {}
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            SafetyBar()
+        }
+    }
+}
+
+@Composable
+private fun SourcesEmptyState(onManageAddons: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Filled.SearchOff,
+            contentDescription = null,
+            tint = TextTertiary,
+            modifier = Modifier.height(40.dp)
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "No sources found",
+            color = TextPrimary,
+            style = MaterialTheme.typography.titleLarge
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "Try installing more addons to find sources for this title.",
+            color = TextSecondary,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(20.dp))
+        MangoButton(
+            text = "Manage Addons",
+            icon = Icons.Filled.Extension,
+            onClick = onManageAddons,
+            style = MangoButtonStyle.GLASS
+        )
+    }
+}
+
+@Composable
+private fun SafetyBar() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MangoSurfaceHigh, RoundedCornerShape(MangoDimens.CardCornerRadius))
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Security,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.height(22.dp)
+        )
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Safe & secure",
+                color = TextPrimary,
+                style = MaterialTheme.typography.labelLarge
+            )
+            Text(
+                text = "All sources are scanned for your safety",
+                color = TextSecondary,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+        Spacer(Modifier.width(16.dp))
+        MangoButton(
+            text = "How it works",
+            icon = Icons.Filled.Info,
+            onClick = {},
+            style = MangoButtonStyle.GLASS,
+            compact = true
+        )
+    }
+}

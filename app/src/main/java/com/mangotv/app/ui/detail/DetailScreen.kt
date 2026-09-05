@@ -184,7 +184,11 @@ private fun DetailContent(
                 DetailHeroSection(
                     content = content,
                     playFocusRequester = playFocusRequester,
-                    onPlay = {},
+                    onPlay = { episode ->
+                        content.providerId?.let { pid ->
+                            onNavigate(MangoRoutes.sources(pid, content.type, content.id, episode?.seasonNumber, episode?.episodeNumber))
+                        }
+                    },
                     onWatched = {},
                     onWatchlist = {},
                     onMore = {},
@@ -203,7 +207,12 @@ private fun DetailContent(
                     SeasonsSection(
                         seasons = content.seasons,
                         modifier = Modifier.fillMaxWidth(),
-                        onNavigateUpPastRow = { returnToHero() }
+                        onNavigateUpPastRow = { returnToHero() },
+                        onEpisodeClick = { episode ->
+                            content.providerId?.let { pid ->
+                                onNavigate(MangoRoutes.sources(pid, content.type, content.id, episode.seasonNumber, episode.episodeNumber))
+                            }
+                        }
                     )
                 } else {
                     Row(modifier = Modifier.fillMaxWidth()) {

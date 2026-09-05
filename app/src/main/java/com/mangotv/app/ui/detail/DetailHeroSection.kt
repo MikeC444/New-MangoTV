@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.ContentType
+import com.mangotv.app.data.model.Episode
 import com.mangotv.app.ui.components.HeroIconButton
 import com.mangotv.app.ui.components.MangoButton
 import com.mangotv.app.ui.components.MangoButtonStyle
@@ -84,7 +85,7 @@ private val HeroTextShadow = Shadow(
 fun DetailHeroSection(
     content: Content,
     playFocusRequester: FocusRequester,
-    onPlay: () -> Unit,
+    onPlay: (Episode?) -> Unit,
     onWatched: () -> Unit,
     onWatchlist: () -> Unit,
     onMore: () -> Unit,
@@ -120,9 +121,15 @@ fun DetailHeroSection(
 
     // TV shows show which episode Play will start — the first episode of
     // the first season, since there's no watch-progress tracking yet to
-    // pick up where the user left off. Movies just say "Play".
+    // pick up where the user left off. Movies just say "Play". Hoisted out
+    // here (not just used for the button text) so the same episode can be
+    // passed to onPlay for the sources screen to resolve.
+    val firstEpisode = if (content.type == ContentType.TV_SHOW) {
+        content.seasons.firstOrNull()?.episodes?.firstOrNull()
+    } else {
+        null
+    }
     val playButtonText = if (content.type == ContentType.TV_SHOW) {
-        val firstEpisode = content.seasons.firstOrNull()?.episodes?.firstOrNull()
         if (firstEpisode != null) {
             "Play S${firstEpisode.seasonNumber}E${firstEpisode.episodeNumber}"
         } else {
@@ -316,7 +323,7 @@ fun DetailHeroSection(
                 MangoButton(
                     text = playButtonText,
                     icon = Icons.Filled.PlayArrow,
-                    onClick = onPlay,
+                    onClick = { onPlay(firstEpisode) },
                     style = MangoButtonStyle.LIGHT,
                     focusRequester = playFocusRequester,
                     focusUp = navUpFocusRequester,

@@ -55,14 +55,15 @@ private val EpisodeThumbWidth = MangoDimens.ContinueWatchingWidth
 
 /**
  * Replaces Cast/"You May Also Like" for TV shows: a season selector followed
- * by that season's episodes. Episode click is currently a no-op — like the
- * hero's Play button, actual playback isn't built yet.
+ * by that season's episodes. Tapping an episode navigates to the source
+ * picker for that specific season/episode.
  */
 @Composable
 fun SeasonsSection(
     seasons: List<Season>,
     modifier: Modifier = Modifier,
-    onNavigateUpPastRow: (() -> Unit)? = null
+    onNavigateUpPastRow: (() -> Unit)? = null,
+    onEpisodeClick: (Episode) -> Unit = {}
 ) {
     if (seasons.isEmpty()) return
 
@@ -132,7 +133,7 @@ fun SeasonsSection(
             horizontalArrangement = Arrangement.spacedBy(MangoDimens.CardSpacing)
         ) {
             items(selectedSeason.episodes, key = { it.id }) { episode ->
-                EpisodeCard(episode = episode, onClick = {})
+                EpisodeCard(episode = episode, onClick = { onEpisodeClick(episode) })
             }
         }
     }

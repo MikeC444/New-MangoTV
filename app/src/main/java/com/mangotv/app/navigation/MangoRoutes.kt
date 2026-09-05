@@ -9,11 +9,18 @@ object MangoRoutes {
     const val SETTINGS_ADDONS = "settings/addons"
     const val SETTINGS_ADD_ADDON = "settings/addons/add"
     const val DETAIL_PATTERN = "detail/{providerId}/{type}/{id}"
+    const val SOURCES_PATTERN = "sources/{providerId}/{type}/{id}/{season}/{episode}"
 
     fun detail(providerId: String, type: ContentType, id: String): String {
         val encodedProviderId = URLEncoder.encode(providerId, "UTF-8")
         val encodedId = URLEncoder.encode(id, "UTF-8")
         return "detail/$encodedProviderId/${type.name}/$encodedId"
+    }
+
+    fun sources(providerId: String, type: ContentType, id: String, season: Int? = null, episode: Int? = null): String {
+        val encodedProviderId = URLEncoder.encode(providerId, "UTF-8")
+        val encodedId = URLEncoder.encode(id, "UTF-8")
+        return "sources/$encodedProviderId/${type.name}/$encodedId/${season ?: -1}/${episode ?: -1}"
     }
 }
 

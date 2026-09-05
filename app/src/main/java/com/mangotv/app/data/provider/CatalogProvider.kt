@@ -3,6 +3,7 @@ package com.mangotv.app.data.provider
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.model.HomeSection
+import com.mangotv.app.data.model.Stream
 
 /**
  * A CatalogProvider is Mango TV's equivalent of a Stremio-style addon: a
@@ -27,4 +28,13 @@ interface CatalogProvider {
      * carry. Returns null if this provider can't resolve the id.
      */
     suspend fun getDetails(type: ContentType, id: String): Content?
+
+    /**
+     * Playable sources for a title, or a specific episode when [season]/
+     * [episode] are given. Different addons can each return different
+     * quality options for the same title, so callers should query every
+     * active provider and merge results rather than treating this like
+     * [getDetails] (which only makes sense against the one owning provider).
+     */
+    suspend fun getStreams(type: ContentType, id: String, season: Int? = null, episode: Int? = null): List<Stream>
 }
