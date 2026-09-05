@@ -55,8 +55,19 @@ class DetailViewModel(private val savedStateHandle: SavedStateHandle) : ViewMode
                 return@launch
             }
 
+            // Show the core page as soon as the detail fetch resolves,
+            // rather than also waiting on "You May Also Like" — that used
+            // to re-fetch every catalog the addon defines before anything
+            // at all appeared, turning one network round trip into two
+            // sequential ones and making every detail page open noticeably
+            // slower than it needed to. The row itself just pops in a
+            // moment later once it's ready.
+            _uiState.value = DetailUiState.Success(detail, similar = emptyList())
+
             val similar = runCatching { loadSimilar(provider, detail) }.getOrDefault(emptyList())
-            _uiState.value = DetailUiState.Success(detail, similar)
+            if (similar.isNotEmpty()) {
+                _uiState.value = DetailUiState.Success(detail, similar)
+            }
         }
     }
 

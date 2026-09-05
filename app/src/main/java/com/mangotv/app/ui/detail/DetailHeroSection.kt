@@ -58,6 +58,7 @@ import com.mangotv.app.ui.theme.MangoAmber
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoMotion
+import com.mangotv.app.ui.theme.MangoSurfaceHigh
 import com.mangotv.app.ui.theme.TextPrimary
 import com.mangotv.app.ui.theme.TextSecondary
 import com.mangotv.app.ui.theme.TextTertiary
@@ -90,6 +91,13 @@ fun DetailHeroSection(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = heroMinHeight)
+            // Neutral fallback so the backdrop area reads as "still
+            // loading" rather than pure black for however long Coil takes
+            // to fetch this specific image — a fresh detail page always
+            // needs a brand new (likely uncached) backdrop, unlike Home's
+            // rows where images have usually already loaded by the time
+            // they're scrolled into view.
+            .background(MangoSurfaceHigh)
     ) {
         KenBurnsBackdrop(url = content.backdropUrl, modifier = Modifier.matchParentSize())
 
