@@ -29,6 +29,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.mangotv.app.data.model.CastMember
@@ -54,18 +55,25 @@ private val CastItemWidth = 100.dp
 fun CastRow(
     cast: List<CastMember>,
     modifier: Modifier = Modifier,
-    onNavigateUpPastRow: (() -> Unit)? = null
+    onNavigateUpPastRow: (() -> Unit)? = null,
+    // Used by the movie detail page to fit its whole layout on one screen
+    // without scrolling — the TV show detail page never passes this, so its
+    // Cast row (used when a show has no season data) is unaffected.
+    compact: Boolean = false
 ) {
     if (cast.isEmpty()) return
+
+    val avatarSize = if (compact) 56.dp else AvatarSize
+    val itemWidth = if (compact) 76.dp else CastItemWidth
 
     Column(modifier = modifier) {
         Text(
             text = "Cast",
             color = TextPrimary,
-            style = MaterialTheme.typography.headlineSmall,
+            style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(
                 start = MangoDimens.ScreenPaddingHorizontal,
-                bottom = 12.dp
+                bottom = if (compact) 6.dp else 12.dp
             )
         )
         LazyRow(
@@ -84,26 +92,31 @@ fun CastRow(
                 Modifier
             },
             contentPadding = PaddingValues(start = MangoDimens.ScreenPaddingHorizontal),
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(if (compact) 14.dp else 20.dp)
         ) {
             items(cast, key = { it.name }) { member ->
-                CastCard(member)
+                CastCard(member, avatarSize = avatarSize, itemWidth = itemWidth, compact = compact)
             }
         }
     }
 }
 
 @Composable
-private fun CastCard(member: CastMember) {
+private fun CastCard(
+    member: CastMember,
+    avatarSize: Dp = AvatarSize,
+    itemWidth: Dp = CastItemWidth,
+    compact: Boolean = false
+) {
     Column(
-        modifier = Modifier.width(CastItemWidth),
+        modifier = Modifier.width(itemWidth),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         TvFocusSurface(
             onClick = {},
             shape = CircleShape,
             backgroundColor = MangoSurfaceHigh,
-            modifier = Modifier.size(AvatarSize),
+            modifier = Modifier.size(avatarSize),
             bringIntoViewOnFocus = false
         ) {
             if (member.photoUrl != null) {
@@ -120,15 +133,15 @@ private fun CastCard(member: CastMember) {
                     tint = TextTertiary,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(20.dp)
+                        .padding(if (compact) 14.dp else 20.dp)
                 )
             }
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
         Text(
             text = member.name,
             color = TextPrimary,
-            style = MaterialTheme.typography.labelLarge,
+            style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,

@@ -130,6 +130,11 @@ private fun DetailContent(
         onNavigate(MangoRoutes.detail(providerId, target.type, target.id))
     }
 
+    // Movies only, for now: shrink the whole page so it fits on one screen
+    // without scrolling. TV shows (whether they have season data or not)
+    // keep the existing, larger layout untouched.
+    val compact = content.type == ContentType.MOVIE
+
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
@@ -146,7 +151,8 @@ private fun DetailContent(
                     onMore = {},
                     navUpFocusRequester = navFocusRequester,
                     onNavigateUpPastHero = { returnToHero() },
-                    onNavigateDownFromHero = { heroRegionFocused = false }
+                    onNavigateDownFromHero = { heroRegionFocused = false },
+                    compact = compact
                 )
             }
             item(key = "seasons_or_cast_and_similar") {
@@ -165,7 +171,8 @@ private fun DetailContent(
                         CastRow(
                             cast = content.cast,
                             modifier = Modifier.weight(1f),
-                            onNavigateUpPastRow = { returnToHero() }
+                            onNavigateUpPastRow = { returnToHero() },
+                            compact = compact
                         )
                         if (similar.isNotEmpty()) {
                             ContentRow(
@@ -176,14 +183,15 @@ private fun DetailContent(
                                 ),
                                 onItemClick = ::navigateToContent,
                                 modifier = Modifier.weight(2f),
-                                onNavigateUpPastRow = { returnToHero() }
+                                onNavigateUpPastRow = { returnToHero() },
+                                compact = compact
                             )
                         }
                     }
                 }
             }
             item(key = "bottom_spacer") {
-                Spacer(Modifier.height(48.dp))
+                Spacer(Modifier.height(if (compact) 16.dp else 48.dp))
             }
         }
 

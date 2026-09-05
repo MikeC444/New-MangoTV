@@ -82,10 +82,15 @@ fun DetailHeroSection(
     modifier: Modifier = Modifier,
     navUpFocusRequester: FocusRequester? = null,
     onNavigateUpPastHero: () -> Unit = {},
-    onNavigateDownFromHero: () -> Unit = {}
+    onNavigateDownFromHero: () -> Unit = {},
+    // Movie detail only, for now: shrinks everything except the title so
+    // the whole page (hero + Cast + You May Also Like) fits on one screen
+    // without scrolling. TV shows don't pass this and are unaffected.
+    compact: Boolean = false
 ) {
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
-    val heroMinHeight = screenHeightDp * 0.82f
+    val heroMinHeight = screenHeightDp * (if (compact) 0.5f else 0.82f)
+    val bottomPadding = if (compact) 24.dp else 56.dp
 
     Box(
         modifier = modifier
@@ -136,24 +141,27 @@ fun DetailHeroSection(
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = MangoDimens.ScreenPaddingHorizontal, bottom = 56.dp)
+                    .padding(end = MangoDimens.ScreenPaddingHorizontal, bottom = bottomPadding)
                     .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
-                    .padding(horizontal = 20.dp, vertical = 14.dp)
+                    .padding(
+                        horizontal = if (compact) 14.dp else 20.dp,
+                        vertical = if (compact) 8.dp else 14.dp
+                    )
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Filled.Star,
                         contentDescription = null,
                         tint = MangoAmber,
-                        modifier = Modifier.height(22.dp)
+                        modifier = Modifier.height(if (compact) 16.dp else 22.dp)
                     )
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(if (compact) 6.dp else 8.dp))
                     Column {
                         Text(
                             text = "%.1f".format(rating),
                             color = TextPrimary,
                             fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleLarge
+                            style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge
                         )
                         Text(
                             text = "IMDb Rating",
@@ -171,7 +179,7 @@ fun DetailHeroSection(
                 .padding(
                     start = MangoDimens.ScreenPaddingHorizontal,
                     end = MangoDimens.ScreenPaddingHorizontal,
-                    bottom = 56.dp
+                    bottom = bottomPadding
                 )
                 .widthIn(max = 780.dp),
             verticalArrangement = Arrangement.Bottom
@@ -184,9 +192,10 @@ fun DetailHeroSection(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(if (compact) 8.dp else 14.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
+                val metaStyle = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium
                 val leadingParts = buildList {
                     content.year?.let { add(it.toString()) }
                     content.runtimeMinutes?.let { add("${it / 60}h ${it % 60}m") }
@@ -195,7 +204,7 @@ fun DetailHeroSection(
                     Text(
                         text = leadingParts.joinToString("   "),
                         color = TextSecondary,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = metaStyle,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -214,24 +223,24 @@ fun DetailHeroSection(
                     Text(
                         text = content.genres.joinToString("  •  ") { it.name },
                         color = TextSecondary,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = metaStyle,
                         fontWeight = FontWeight.Medium
                     )
                 }
             }
 
             if (content.description.isNotBlank()) {
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(if (compact) 8.dp else 16.dp))
                 Text(
                     text = content.description,
                     color = TextSecondary,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 4,
+                    style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
+                    maxLines = if (compact) 2 else 4,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(if (compact) 16.dp else 28.dp))
 
             // Same imperative UP/DOWN handling as HeroSection: UP is fully
             // consumed (both KeyDown/KeyUp) and drives an explicit
@@ -263,18 +272,20 @@ fun DetailHeroSection(
                     style = MangoButtonStyle.FILLED,
                     focusRequester = playFocusRequester,
                     focusUp = navUpFocusRequester,
-                    bringIntoViewOnFocus = false
+                    bringIntoViewOnFocus = false,
+                    compact = compact
                 )
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(if (compact) 10.dp else 16.dp))
                 MangoButton(
                     text = "Watchlist",
                     icon = Icons.Filled.Add,
                     onClick = onWatchlist,
                     style = MangoButtonStyle.GLASS,
                     focusUp = navUpFocusRequester,
-                    bringIntoViewOnFocus = false
+                    bringIntoViewOnFocus = false,
+                    compact = compact
                 )
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(if (compact) 10.dp else 16.dp))
                 TvFocusSurface(
                     onClick = onMore,
                     shape = CircleShape,
@@ -286,7 +297,7 @@ fun DetailHeroSection(
                         imageVector = Icons.Filled.MoreHoriz,
                         contentDescription = "More options",
                         tint = TextPrimary,
-                        modifier = Modifier.padding(14.dp)
+                        modifier = Modifier.padding(if (compact) 10.dp else 14.dp)
                     )
                 }
             }

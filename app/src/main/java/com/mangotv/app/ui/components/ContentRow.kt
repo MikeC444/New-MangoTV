@@ -40,7 +40,11 @@ fun ContentRow(
     // Only the first row needs this: its hero buttons no longer
     // auto-scroll into view on focus (see HeroSection), so returning to
     // them from here needs to be handled explicitly instead.
-    onNavigateUpPastRow: (() -> Unit)? = null
+    onNavigateUpPastRow: (() -> Unit)? = null,
+    // Used by the movie detail page to fit its whole layout on one screen
+    // without scrolling — Home never passes this, so its rows are
+    // completely unaffected.
+    compact: Boolean = false
 ) {
     var rowSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -78,10 +82,10 @@ fun ContentRow(
         Text(
             text = section.title,
             color = TextPrimary,
-            style = MaterialTheme.typography.headlineSmall,
+            style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(
                 horizontal = MangoDimens.ScreenPaddingHorizontal,
-                vertical = 12.dp
+                vertical = if (compact) 6.dp else 12.dp
             )
         )
         LazyRow(
@@ -104,13 +108,14 @@ fun ContentRow(
                 Modifier
             },
             contentPadding = PaddingValues(horizontal = MangoDimens.ScreenPaddingHorizontal),
-            horizontalArrangement = Arrangement.spacedBy(MangoDimens.CardSpacing)
+            horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else MangoDimens.CardSpacing)
         ) {
             items(section.items, key = { it.id }) { content ->
                 ContentCard(
                     content = content,
                     style = section.style,
-                    onClick = { onItemClick(content) }
+                    onClick = { onItemClick(content) },
+                    compact = compact
                 )
             }
         }

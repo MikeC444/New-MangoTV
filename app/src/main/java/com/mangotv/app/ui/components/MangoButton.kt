@@ -35,13 +35,22 @@ fun MangoButton(
     focusRequester: FocusRequester? = null,
     focusUp: FocusRequester? = null,
     focusDown: FocusRequester? = null,
-    bringIntoViewOnFocus: Boolean = true
+    bringIntoViewOnFocus: Boolean = true,
+    // Used by the movie detail page to fit its whole layout on one screen
+    // without scrolling — every other caller leaves this false, so their
+    // buttons are completely unaffected.
+    compact: Boolean = false
 ) {
     val contentColor = if (style == MangoButtonStyle.FILLED) MangoBackground else TextPrimary
+    val buttonHeight = if (compact) 40.dp else 52.dp
+    val horizontalPadding = if (compact) 16.dp else 26.dp
+    val iconHeight = if (compact) 16.dp else 22.dp
+    val iconTextSpacing = if (compact) 6.dp else 10.dp
+    val textStyle = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge
 
     TvFocusSurface(
         onClick = onClick,
-        modifier = modifier.height(52.dp),
+        modifier = modifier.height(buttonHeight),
         shape = RoundedCornerShape(MangoDimens.ButtonCornerRadius),
         backgroundColor = if (style == MangoButtonStyle.GLASS) Color.White.copy(alpha = 0.12f) else Color.Transparent,
         backgroundBrush = if (style == MangoButtonStyle.FILLED) MangoBrandGradient else null,
@@ -53,21 +62,21 @@ fun MangoButton(
         Row(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(horizontal = 26.dp),
+                .padding(horizontal = horizontalPadding),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = contentColor,
-                modifier = Modifier.height(22.dp)
+                modifier = Modifier.height(iconHeight)
             )
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(iconTextSpacing))
             Text(
                 text = text,
                 color = contentColor,
                 fontWeight = FontWeight.SemiBold,
-                style = MaterialTheme.typography.labelLarge
+                style = textStyle
             )
         }
     }
