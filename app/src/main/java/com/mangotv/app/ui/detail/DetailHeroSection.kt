@@ -89,7 +89,19 @@ fun DetailHeroSection(
     compact: Boolean = false
 ) {
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
-    val heroMinHeight = screenHeightDp * (if (compact) 0.5f else 0.82f)
+    val heroMinHeight = if (compact) {
+        // Reserve just enough fixed space below the hero for the Cast /
+        // You May Also Like row (~130dp) plus the bottom spacer (16dp),
+        // and give the hero everything else — rather than a fixed
+        // fraction of the screen, this scales with the actual screen
+        // height so the hero (and therefore where description/buttons/
+        // Cast end up) stretches to fill exactly what's left, with Cast /
+        // You May Also Like landing right at the bottom instead of
+        // sitting high up with dead space beneath it.
+        (screenHeightDp - 176.dp).coerceAtLeast(320.dp)
+    } else {
+        screenHeightDp * 0.82f
+    }
     val bottomPadding = if (compact) 24.dp else 56.dp
 
     Box(
@@ -176,13 +188,20 @@ fun DetailHeroSection(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
+                .let { if (compact) it.fillMaxSize() else it }
                 .padding(
                     start = MangoDimens.ScreenPaddingHorizontal,
                     end = MangoDimens.ScreenPaddingHorizontal,
+                    // Compact: title/meta sit at a fixed distance from the
+                    // top of the (now much taller) hero, clearing the nav
+                    // bar overlay above it, and stay put regardless of how
+                    // tall the hero grows. Non-compact: unchanged — the
+                    // whole block is still bottom-anchored as one piece.
+                    top = if (compact) 130.dp else 0.dp,
                     bottom = bottomPadding
                 )
                 .widthIn(max = 780.dp),
-            verticalArrangement = Arrangement.Bottom
+            verticalArrangement = if (compact) Arrangement.Top else Arrangement.Bottom
         ) {
             Text(
                 text = content.title,
@@ -227,6 +246,16 @@ fun DetailHeroSection(
                         fontWeight = FontWeight.Medium
                     )
                 }
+            }
+
+            if (compact) {
+                // Flexible gap: absorbs whatever room is left between the
+                // meta row and the description/buttons below, so those
+                // stay pinned to the bottom of the (now taller) hero
+                // instead of trailing right behind the meta row — title
+                // and meta above are unaffected since they're above this
+                // spacer, not part of what it pushes down.
+                Spacer(Modifier.weight(1f))
             }
 
             if (content.description.isNotBlank()) {
