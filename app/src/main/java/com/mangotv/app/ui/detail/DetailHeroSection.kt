@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -204,9 +205,12 @@ fun DetailHeroSection(
                     // Compact: title/meta sit at a fixed distance from the
                     // top of the (now much taller) hero, clearing the nav
                     // bar overlay above it, and stay put regardless of how
-                    // tall the hero grows. Non-compact: unchanged — the
-                    // whole block is still bottom-anchored as one piece.
-                    top = if (compact) 130.dp else 0.dp,
+                    // tall the hero grows — the flexible spacer further
+                    // down absorbs the change, so moving this doesn't shift
+                    // description/buttons/Cast below. Non-compact:
+                    // unchanged — the whole block is still bottom-anchored
+                    // as one piece.
+                    top = if (compact) 95.dp else 0.dp,
                     bottom = bottomPadding
                 )
                 .widthIn(max = 780.dp),
@@ -214,18 +218,20 @@ fun DetailHeroSection(
         ) {
             // Prefer the addon-supplied clearlogo (a stylized title
             // graphic, the way Stremio/Nuvio render it) over plain text
-            // when the full meta fetch provided one. Sized the same
-            // whether compact or not, matching the "keep the title the
-            // same" ask for the movie page — this is what replaces the
-            // title, not something that shrinks alongside everything else.
+            // when the full meta fetch provided one. On compact, a small
+            // negative x-offset compensates for the transparent margin
+            // most logo PNGs carry around their visible artwork, so it
+            // reads as flush with the left edge like the other text below
+            // it rather than visibly indented.
             if (content.logoUrl != null) {
                 AsyncImage(
                     model = content.logoUrl,
                     contentDescription = content.title,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
-                        .height(100.dp)
-                        .widthIn(max = 700.dp)
+                        .height(if (compact) 116.dp else 100.dp)
+                        .widthIn(max = if (compact) 760.dp else 700.dp)
+                        .let { if (compact) it.offset(x = (-16).dp) else it }
                 )
             } else {
                 Text(
