@@ -32,7 +32,9 @@ fun MangoButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     style: MangoButtonStyle = MangoButtonStyle.GLASS,
-    focusRequester: FocusRequester? = null
+    focusRequester: FocusRequester? = null,
+    focusUp: FocusRequester? = null,
+    focusDown: FocusRequester? = null
 ) {
     val contentColor = if (style == MangoButtonStyle.FILLED) MangoBackground else TextPrimary
 
@@ -42,7 +44,9 @@ fun MangoButton(
         shape = RoundedCornerShape(MangoDimens.ButtonCornerRadius),
         backgroundColor = if (style == MangoButtonStyle.GLASS) Color.White.copy(alpha = 0.12f) else Color.Transparent,
         backgroundBrush = if (style == MangoButtonStyle.FILLED) MangoBrandGradient else null,
-        focusRequester = focusRequester
+        focusRequester = focusRequester,
+        focusUp = focusUp,
+        focusDown = focusDown
     ) {
         Row(
             modifier = Modifier

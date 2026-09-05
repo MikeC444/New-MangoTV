@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -50,6 +51,10 @@ fun TvFocusSurface(
     backgroundColor: Color = Color.Transparent,
     backgroundBrush: Brush? = null,
     focusRequester: FocusRequester? = null,
+    focusUp: FocusRequester? = null,
+    focusDown: FocusRequester? = null,
+    focusLeft: FocusRequester? = null,
+    focusRight: FocusRequester? = null,
     bringIntoViewOnFocus: Boolean = true,
     onFocusChanged: (Boolean) -> Unit = {},
     content: @Composable BoxScope.() -> Unit
@@ -87,6 +92,18 @@ fun TvFocusSurface(
     }
     if (focusRequester != null) {
         boxModifier = boxModifier.focusRequester(focusRequester)
+    }
+    if (focusUp != null || focusDown != null || focusLeft != null || focusRight != null) {
+        // The default D-pad focus search is a geometric heuristic and can fail
+        // to find a target across large gaps or overlaid layouts (e.g. a nav
+        // bar sitting above a tall hero). Pinning specific directions here
+        // makes those seams deterministic instead of "getting stuck".
+        boxModifier = boxModifier.focusProperties {
+            focusUp?.let { up = it }
+            focusDown?.let { down = it }
+            focusLeft?.let { left = it }
+            focusRight?.let { right = it }
+        }
     }
     boxModifier = boxModifier.clip(shape)
     boxModifier = if (backgroundBrush != null) {

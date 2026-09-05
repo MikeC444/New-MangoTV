@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -36,6 +37,8 @@ fun TopNavBar(
     transparentBackground: Boolean,
     modifier: Modifier = Modifier,
     selectedIndex: Int = 0,
+    homeItemFocusRequester: FocusRequester? = null,
+    contentFocusRequester: FocusRequester? = null,
     onItemClick: (String) -> Unit = {}
 ) {
     val scrimAlpha by animateFloatAsState(
@@ -64,7 +67,9 @@ fun TopNavBar(
             NavItem(
                 label = label,
                 selected = index == selectedIndex,
-                onClick = { onItemClick(label) }
+                onClick = { onItemClick(label) },
+                focusRequester = if (index == 0) homeItemFocusRequester else null,
+                focusDown = contentFocusRequester
             )
             if (index != MangoNavItems.lastIndex) {
                 Spacer(Modifier.width(8.dp))
@@ -77,7 +82,9 @@ fun TopNavBar(
 private fun NavItem(
     label: String,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    focusRequester: FocusRequester? = null,
+    focusDown: FocusRequester? = null
 ) {
     var focused by remember { mutableStateOf(false) }
     TvFocusSurface(
@@ -85,7 +92,9 @@ private fun NavItem(
         shape = RoundedCornerShape(6.dp),
         backgroundColor = Color.Transparent,
         onFocusChanged = { focused = it },
-        bringIntoViewOnFocus = false
+        bringIntoViewOnFocus = false,
+        focusRequester = focusRequester,
+        focusDown = focusDown
     ) {
         Text(
             text = label,

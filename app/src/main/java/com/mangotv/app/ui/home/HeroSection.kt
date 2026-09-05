@@ -60,7 +60,8 @@ fun HeroSection(
     onPlay: (Content) -> Unit,
     onAddToList: (Content) -> Unit,
     onMoreInfo: (Content) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    navUpFocusRequester: FocusRequester? = null
 ) {
     if (items.isEmpty()) return
 
@@ -181,21 +182,24 @@ fun HeroSection(
                     icon = Icons.Filled.PlayArrow,
                     onClick = { onPlay(current) },
                     style = MangoButtonStyle.FILLED,
-                    focusRequester = playFocusRequester
+                    focusRequester = playFocusRequester,
+                    focusUp = navUpFocusRequester
                 )
                 Spacer(Modifier.width(16.dp))
                 MangoButton(
                     text = "My List",
                     icon = Icons.Filled.Add,
                     onClick = { onAddToList(current) },
-                    style = MangoButtonStyle.GLASS
+                    style = MangoButtonStyle.GLASS,
+                    focusUp = navUpFocusRequester
                 )
                 Spacer(Modifier.width(16.dp))
                 MangoButton(
                     text = "More Info",
                     icon = Icons.Filled.Info,
                     onClick = { onMoreInfo(current) },
-                    style = MangoButtonStyle.GLASS
+                    style = MangoButtonStyle.GLASS,
+                    focusUp = navUpFocusRequester
                 )
             }
         }

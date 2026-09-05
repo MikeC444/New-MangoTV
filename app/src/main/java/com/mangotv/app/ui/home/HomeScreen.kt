@@ -58,6 +58,7 @@ private fun HomeContent(
 ) {
     val listState = rememberLazyListState()
     val playFocusRequester = remember { FocusRequester() }
+    val homeNavFocusRequester = remember { FocusRequester() }
     var hasRequestedInitialFocus by remember { mutableStateOf(false) }
 
     val isScrolled by remember {
@@ -84,7 +85,8 @@ private fun HomeContent(
                     playFocusRequester = playFocusRequester,
                     onPlay = {},
                     onAddToList = {},
-                    onMoreInfo = {}
+                    onMoreInfo = {},
+                    navUpFocusRequester = homeNavFocusRequester
                 )
             }
             items(state.sections, key = { it.id }) { section ->
@@ -102,7 +104,9 @@ private fun HomeContent(
         TopNavBar(
             transparentBackground = !isScrolled,
             modifier = Modifier
-                .align(Alignment.TopCenter)
+                .align(Alignment.TopCenter),
+            homeItemFocusRequester = homeNavFocusRequester,
+            contentFocusRequester = playFocusRequester
         )
     }
 }
