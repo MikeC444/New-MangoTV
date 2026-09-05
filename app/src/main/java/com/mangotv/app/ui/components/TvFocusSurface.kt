@@ -56,6 +56,14 @@ fun TvFocusSurface(
     focusRight: FocusRequester? = null,
     bringIntoViewOnFocus: Boolean = true,
     onFocusChanged: (Boolean) -> Unit = {},
+    // Keeps a persistent border (e.g. the "Recommended" outline on the
+    // Sources screen) visible even when unfocused, drawn by this same
+    // border() call rather than a second one layered on by the caller —
+    // that second border used to sit on the modifier passed in from
+    // outside, i.e. before the graphicsLayer scale below, so it stayed a
+    // fixed size while the focused card scaled up around it.
+    alwaysShowBorder: Boolean = false,
+    borderColor: Color = FocusBorder,
     content: @Composable BoxScope.() -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -78,7 +86,7 @@ fun TvFocusSurface(
         label = "focusElevation"
     )
     val borderAlpha by animateFloatAsState(
-        targetValue = if (isFocused) 1f else 0f,
+        targetValue = if (isFocused || alwaysShowBorder) 1f else 0f,
         animationSpec = MangoMotion.focusTween,
         label = "focusBorder"
     )
@@ -128,7 +136,7 @@ fun TvFocusSurface(
         boxModifier.background(backgroundColor)
     }
     boxModifier = boxModifier
-        .border(BorderStroke(2.dp, FocusBorder.copy(alpha = borderAlpha)), shape)
+        .border(BorderStroke(2.dp, borderColor.copy(alpha = borderAlpha)), shape)
         .clickable(
             interactionSource = interactionSource,
             indication = null,

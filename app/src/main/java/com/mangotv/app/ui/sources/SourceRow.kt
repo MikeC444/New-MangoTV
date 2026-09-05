@@ -35,6 +35,7 @@ import com.mangotv.app.data.model.ResolutionTier
 import com.mangotv.app.data.model.Stream
 import com.mangotv.app.ui.components.GlowPlayBadge
 import com.mangotv.app.ui.components.TvFocusSurface
+import com.mangotv.app.ui.theme.FocusBorder
 import com.mangotv.app.ui.theme.MangoAmber
 import com.mangotv.app.ui.theme.MangoAzure
 import com.mangotv.app.ui.theme.MangoBackground
@@ -60,10 +61,14 @@ fun SourceRow(
             onClick = onClick,
             shape = shape,
             backgroundColor = MangoSurfaceHigh,
-            modifier = Modifier
-                .fillMaxWidth()
-                .let { if (isRecommended) it.border(BorderStroke(2.dp, MangoAmber), shape) else it },
+            modifier = Modifier.fillMaxWidth(),
             focusRequester = focusRequester,
+            // Drawn by TvFocusSurface itself (inside its focus-scale
+            // transform) rather than as a border on the modifier above, so
+            // the amber outline scales up together with the card instead
+            // of staying a fixed size while the card grows around it.
+            alwaysShowBorder = isRecommended,
+            borderColor = if (isRecommended) MangoAmber else FocusBorder,
             bringIntoViewOnFocus = false
         ) {
             Row(
