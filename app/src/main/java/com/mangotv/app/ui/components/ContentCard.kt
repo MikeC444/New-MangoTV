@@ -1,8 +1,6 @@
 package com.mangotv.app.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -68,31 +67,28 @@ fun ContentCard(
                 modifier = Modifier.fillMaxSize()
             )
 
-            AnimatedVisibility(
-                visible = focused && !isContinueWatching,
-                enter = fadeIn(),
-                exit = fadeOut(),
-                modifier = Modifier.align(Alignment.BottomStart).fillMaxWidth()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
-                            )
+            val ratingOverlayAlpha by animateFloatAsState(
+                targetValue = if (focused && !isContinueWatching) 1f else 0f,
+                label = "ratingOverlayAlpha"
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .graphicsLayer { alpha = ratingOverlayAlpha }
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))
                         )
-                        .padding(10.dp)
-                ) {
-                    Column {
-                        content.rating?.let {
-                            Text(
-                                text = "★ ${"%.1f".format(it)}",
-                                color = TextPrimary,
-                                style = androidx.compose.material3.MaterialTheme.typography.labelSmall
-                            )
-                        }
-                    }
+                    )
+                    .padding(10.dp)
+            ) {
+                content.rating?.let {
+                    Text(
+                        text = "★ ${"%.1f".format(it)}",
+                        color = TextPrimary,
+                        style = androidx.compose.material3.MaterialTheme.typography.labelSmall
+                    )
                 }
             }
 
