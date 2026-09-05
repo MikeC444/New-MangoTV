@@ -22,6 +22,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mangotv.app.navigation.routeForNavLabel
 import com.mangotv.app.ui.components.ContentRow
 import com.mangotv.app.ui.components.FullScreenErrorState
 import com.mangotv.app.ui.components.HomeLoadingSkeleton
@@ -30,6 +31,7 @@ import com.mangotv.app.ui.theme.MangoDimens
 
 @Composable
 fun HomeScreen(
+    onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel()
 ) {
@@ -46,7 +48,7 @@ fun HomeScreen(
                 message = state.message,
                 onRetry = viewModel::load
             )
-            is HomeUiState.Success -> HomeContent(state = state)
+            is HomeUiState.Success -> HomeContent(state = state, onNavigate = onNavigate)
         }
     }
 }
@@ -54,6 +56,7 @@ fun HomeScreen(
 @Composable
 private fun HomeContent(
     state: HomeUiState.Success,
+    onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -105,8 +108,10 @@ private fun HomeContent(
             transparentBackground = !isScrolled,
             modifier = Modifier
                 .align(Alignment.TopCenter),
-            homeItemFocusRequester = homeNavFocusRequester,
-            contentFocusRequester = playFocusRequester
+            selectedIndex = 0,
+            selectedItemFocusRequester = homeNavFocusRequester,
+            contentFocusRequester = playFocusRequester,
+            onItemClick = { label -> routeForNavLabel(label)?.let(onNavigate) }
         )
     }
 }

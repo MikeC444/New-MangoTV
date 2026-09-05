@@ -30,14 +30,14 @@ import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.TextPrimary
 import com.mangotv.app.ui.theme.TextSecondary
 
-val MangoNavItems = listOf("Home", "Movies", "TV Shows", "Genres", "Search", "My List")
+val MangoNavItems = listOf("Home", "Movies", "TV Shows", "Genres", "Search", "My List", "Settings")
 
 @Composable
 fun TopNavBar(
     transparentBackground: Boolean,
     modifier: Modifier = Modifier,
     selectedIndex: Int = 0,
-    homeItemFocusRequester: FocusRequester? = null,
+    selectedItemFocusRequester: FocusRequester? = null,
     contentFocusRequester: FocusRequester? = null,
     onItemClick: (String) -> Unit = {}
 ) {
@@ -68,7 +68,7 @@ fun TopNavBar(
                 label = label,
                 selected = index == selectedIndex,
                 onClick = { onItemClick(label) },
-                focusRequester = if (index == 0) homeItemFocusRequester else null,
+                focusRequester = if (index == selectedIndex) selectedItemFocusRequester else null,
                 focusDown = contentFocusRequester
             )
             if (index != MangoNavItems.lastIndex) {

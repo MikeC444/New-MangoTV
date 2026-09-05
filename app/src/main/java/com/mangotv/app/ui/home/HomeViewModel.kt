@@ -25,7 +25,14 @@ class HomeViewModel : ViewModel() {
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        load()
+        // Re-collects (and reloads) automatically whenever an addon is
+        // installed, removed, enabled or disabled — Home never needs to be
+        // told to refresh explicitly.
+        viewModelScope.launch {
+            ProviderRegistry.providers.collect {
+                load()
+            }
+        }
     }
 
     fun load() {
