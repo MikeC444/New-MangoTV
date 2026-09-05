@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -100,15 +101,21 @@ private fun SourcesContent(
     }
 
     Row(modifier = Modifier.fillMaxSize()) {
+        // Weighted, not a fixed dp width — a fixed width can eat a hugely
+        // disproportionate share of the screen on non-standard displays
+        // (e.g. an ultrawide monitor with unusual density reporting),
+        // starving the row content on the right of the space it needs.
         SourcesInfoPanel(
             content = state.content,
             onBack = onBack,
-            modifier = Modifier.width(420.dp)
+            modifier = Modifier
+                .weight(0.32f)
+                .fillMaxHeight()
         )
 
         Column(
             modifier = Modifier
-                .weight(1f)
+                .weight(0.68f)
                 .fillMaxSize()
                 .padding(
                     horizontal = MangoDimens.ScreenPaddingHorizontal,

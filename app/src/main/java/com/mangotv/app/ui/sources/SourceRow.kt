@@ -36,6 +36,7 @@ import com.mangotv.app.data.model.ResolutionTier
 import com.mangotv.app.data.model.Stream
 import com.mangotv.app.ui.components.TvFocusSurface
 import com.mangotv.app.ui.theme.MangoAmber
+import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoCoral
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoSurfaceHigh
@@ -70,7 +71,7 @@ fun SourceRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 QualityBadge(stream)
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -133,11 +134,11 @@ fun SourceRow(
                     }
                 }
 
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
 
                 Column(
                     horizontalAlignment = Alignment.End,
-                    modifier = Modifier.widthIn(max = 110.dp)
+                    modifier = Modifier.widthIn(max = 90.dp)
                 ) {
                     stream.sizeLabel?.let {
                         Text(
@@ -167,11 +168,11 @@ fun SourceRow(
                     }
                 }
 
-                Spacer(Modifier.width(20.dp))
+                Spacer(Modifier.width(12.dp))
 
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(36.dp)
                         .background(MangoAmber.copy(alpha = 0.18f), CircleShape)
                 ) {
                     Icon(
@@ -180,7 +181,7 @@ fun SourceRow(
                         tint = MangoAmber,
                         modifier = Modifier
                             .align(Alignment.Center)
-                            .size(20.dp)
+                            .size(18.dp)
                     )
                 }
             }
@@ -221,10 +222,12 @@ private fun QualityBadge(stream: Stream) {
         ResolutionTier.HD_720P -> MangoCoral
         ResolutionTier.OTHER -> TextTertiary
     }
+    val badgeShape = RoundedCornerShape(8.dp)
     Column(
         modifier = Modifier
-            .background(color.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .border(BorderStroke(1.dp, color), badgeShape)
+            .background(MangoBackground, badgeShape)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(

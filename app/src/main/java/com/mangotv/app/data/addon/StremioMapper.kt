@@ -156,10 +156,14 @@ fun StremioStream.toStream(providerId: String, providerLabel: String): Stream {
 
     val idSeed = infoHash ?: url ?: (title.orEmpty() + name.orEmpty())
 
+    // Some addons prefix `name` with a bracketed tag (e.g. "[TB+] Torrentio")
+    // that reads as noise in a compact provider label — strip it for display.
+    val cleanedName = name?.replace(Regex("^\\[.*?\\]\\s*"), "")?.takeIf { it.isNotBlank() }
+
     return Stream(
         id = "$providerId:${idSeed.hashCode()}",
         providerId = providerId,
-        providerLabel = name?.takeIf { it.isNotBlank() } ?: providerLabel,
+        providerLabel = cleanedName ?: providerLabel,
         resolutionTier = resolutionTier,
         qualityBadge = qualityBadge,
         releaseTitle = releaseTitle,

@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.HighQuality
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,12 +34,12 @@ import com.mangotv.app.ui.theme.MangoSurfaceHigh
 import com.mangotv.app.ui.theme.TextPrimary
 import com.mangotv.app.ui.theme.TextSecondary
 
-enum class SourceFilter(val label: String, val tier: ResolutionTier?) {
-    ALL("All Sources", null),
-    UHD_4K("4K", ResolutionTier.UHD_4K),
-    FHD_1080P("1080p", ResolutionTier.FHD_1080P),
-    HD_720P("720p", ResolutionTier.HD_720P),
-    OTHER("Other", ResolutionTier.OTHER)
+enum class SourceFilter(val label: String, val tier: ResolutionTier?, val icon: ImageVector?) {
+    ALL("All Sources", null, null),
+    UHD_4K("4K", ResolutionTier.UHD_4K, Icons.Filled.HighQuality),
+    FHD_1080P("1080p", ResolutionTier.FHD_1080P, Icons.Filled.HighQuality),
+    HD_720P("720p", ResolutionTier.HD_720P, Icons.Filled.HighQuality),
+    OTHER("Other", ResolutionTier.OTHER, Icons.Filled.Layers)
 }
 
 enum class SourceSort(val label: String) {
@@ -74,6 +77,7 @@ fun SourceFilterBar(
             items(SourceFilter.entries) { filter ->
                 FilterPill(
                     label = filter.label,
+                    icon = filter.icon,
                     selected = filter == selectedFilter,
                     onClick = { onFilterChange(filter) }
                 )
@@ -93,8 +97,9 @@ fun SourceFilterBar(
 }
 
 @Composable
-private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun FilterPill(label: String, icon: ImageVector?, selected: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
+    val contentColor = if (focused || selected) TextPrimary else TextSecondary
     TvFocusSurface(
         onClick = onClick,
         shape = RoundedCornerShape(percent = 50),
@@ -102,15 +107,28 @@ private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
         onFocusChanged = { focused = it },
         bringIntoViewOnFocus = false
     ) {
-        Text(
-            text = label,
-            color = if (focused || selected) TextPrimary else TextSecondary,
-            fontWeight = if (focused || selected) FontWeight.Bold else FontWeight.Medium,
-            style = MaterialTheme.typography.labelLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Clip,
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = contentColor,
+                    modifier = Modifier.width(14.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(
+                text = label,
+                color = contentColor,
+                fontWeight = if (focused || selected) FontWeight.Bold else FontWeight.Medium,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Clip
+            )
+        }
     }
 }
 
