@@ -58,7 +58,17 @@ fun ContentCard(
             shape = RoundedCornerShape(MangoDimens.CardCornerRadius),
             backgroundColor = MangoSurface,
             focusRequester = focusRequester,
-            onFocusChanged = { focused = it }
+            onFocusChanged = { focused = it },
+            // The enclosing LazyRow already has its own built-in
+            // scroll-into-view behavior that runs as focus moves from card
+            // to card. Leaving this surface's own explicit bringIntoView
+            // call enabled meant two slightly-independent scroll animations
+            // running at once for the same focus change, which showed up as
+            // a very small shimmer/jitter on the posters while scrolling
+            // through a row. The row's own scrolling is sufficient on its
+            // own, so this one is redundant — same fix already applied to
+            // the hero's buttons for the equivalent double-scroll issue.
+            bringIntoViewOnFocus = false
         ) {
             AsyncImage(
                 model = imageUrl,
