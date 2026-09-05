@@ -68,8 +68,16 @@ fun TopNavBar(
             .let { base ->
                 if (onNavigateDown != null) {
                     base.onPreviewKeyEvent { event ->
-                        if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionDown) {
-                            onNavigateDown()
+                        // Consume both KeyDown and KeyUp for this key so
+                        // neither phase falls through to Compose's default
+                        // focus-move handling, which appears to run its own
+                        // scroll-into-view independent of
+                        // bringIntoViewOnFocus and was causing a second,
+                        // unwanted scroll after the imperative one above.
+                        if (event.key == Key.DirectionDown) {
+                            if (event.type == KeyEventType.KeyDown) {
+                                onNavigateDown()
+                            }
                             true
                         } else {
                             false

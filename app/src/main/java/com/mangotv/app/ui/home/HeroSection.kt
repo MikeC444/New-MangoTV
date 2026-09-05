@@ -212,8 +212,16 @@ fun HeroSection(
             // as a harmless fallback in case this doesn't consume the event.
             Row(
                 modifier = Modifier.onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
-                        onNavigateUpPastHero()
+                    // Consume BOTH the KeyDown and KeyUp phases of this key —
+                    // leaving KeyUp unconsumed let it fall through to
+                    // Compose's default focus-move handling (which appears to
+                    // run its own scroll-into-view independent of
+                    // bringIntoViewOnFocus), causing a second unwanted scroll
+                    // after the imperative one below already ran on KeyDown.
+                    if (event.key == Key.DirectionUp) {
+                        if (event.type == KeyEventType.KeyDown) {
+                            onNavigateUpPastHero()
+                        }
                         true
                     } else {
                         false

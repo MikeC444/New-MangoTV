@@ -44,8 +44,14 @@ fun ContentRow(
         LazyRow(
             modifier = if (onNavigateUpPastRow != null) {
                 Modifier.onPreviewKeyEvent { event ->
-                    if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
-                        onNavigateUpPastRow()
+                    // Consume both KeyDown and KeyUp for this key — an
+                    // unconsumed KeyUp can fall through to Compose's default
+                    // focus-move handling and trigger its own scroll-into-
+                    // view, independent of bringIntoViewOnFocus.
+                    if (event.key == Key.DirectionUp) {
+                        if (event.type == KeyEventType.KeyDown) {
+                            onNavigateUpPastRow()
+                        }
                         true
                     } else {
                         false
