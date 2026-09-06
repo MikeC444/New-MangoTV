@@ -3,6 +3,7 @@ package com.mangotv.app.data.addon
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -49,6 +50,20 @@ class AddonRepository(context: Context) {
         _installedAddons.value = stored
         stored.filter { it.enabled }.forEach { addon ->
             ProviderRegistry.register(StremioAddonProvider(addon.manifestUrl, addon.manifest, client))
+        }
+
+        // First-ever launch (nothing installed yet, and we've never
+        // successfully bootstrapped before) gets Cinemeta pre-installed so
+        // Home has content out of the box instead of the empty-library
+        // state — without the bootstrapped flag this would also refire
+        // every time a user deliberately removes their last addon. Only
+        // marked bootstrapped on actual success, so a launch with no
+        // network simply retries next time instead of leaving the user
+        // permanently addon-less.
+        if (stored.isEmpty() && !isDefaultAddonBootstrapped()) {
+            installAddon(CINEMETA_MANIFEST_URL).onSuccess {
+                setDefaultAddonBootstrapped()
+            }
         }
     }
 
@@ -102,7 +117,22 @@ class AddonRepository(context: Context) {
         appContext.addonDataStore.edit { it[ADDONS_KEY] = raw }
     }
 
+    private suspend fun isDefaultAddonBootstrapped(): Boolean =
+        appContext.addonDataStore.data.first()[DEFAULT_ADDON_BOOTSTRAPPED_KEY] ?: false
+
+    private suspend fun setDefaultAddonBootstrapped() {
+        appContext.addonDataStore.edit { it[DEFAULT_ADDON_BOOTSTRAPPED_KEY] = true }
+    }
+
     companion object {
         private val ADDONS_KEY = stringPreferencesKey("installed_addons_json")
+        private val DEFAULT_ADDON_BOOTSTRAPPED_KEY = booleanPreferencesKey("default_addon_bootstrapped")
+
+        // Stremio's own official Cinemeta addon (IMDb-sourced movie/series
+        // catalogs and metadata) -- installed automatically on first launch
+        // so a fresh install has real content immediately rather than
+        // showing the empty-library state until a user manually finds and
+        // adds an addon of their own.
+        private const val CINEMETA_MANIFEST_URL = "https://v3-cinemeta.strem.io/manifest.json"
     }
 }
