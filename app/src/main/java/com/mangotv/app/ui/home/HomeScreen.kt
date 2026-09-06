@@ -213,6 +213,7 @@ private fun HomeContent(
                     section = section,
                     onItemClick = ::navigateToContent,
                     modifier = Modifier.padding(bottom = MangoDimens.RowSpacing),
+                    posterScale = 0.5f,
                     onNavigateUpPastRow = if (index == 0) {
                         {
                             // Hero buttons no longer auto-scroll into view

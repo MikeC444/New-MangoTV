@@ -47,15 +47,20 @@ fun ContentCard(
     // Used by the movie detail page to fit its whole layout on one screen
     // without scrolling — Home and the TV show detail page never pass this,
     // so their card sizing is completely unaffected.
-    compact: Boolean = false
+    compact: Boolean = false,
+    // Independent of `compact` (a fixed 2/3 ratio tied to that specific
+    // layout need) — an additional multiplier a caller can apply on top,
+    // e.g. Home shrinking its poster rows. Defaults to 1f so every other
+    // existing caller is unaffected.
+    posterScale: Float = 1f
 ) {
     val isContinueWatching = style == RowStyle.CONTINUE_WATCHING
-    val scale = if (compact) 2f / 3f else 1f
+    val scale = (if (compact) 2f / 3f else 1f) * posterScale
     val width = (if (isContinueWatching) MangoDimens.ContinueWatchingWidth else MangoDimens.PosterWidth) * scale
     val height = (if (isContinueWatching) MangoDimens.ContinueWatchingHeight else MangoDimens.PosterHeight) * scale
     var focused by remember { mutableStateOf(false) }
     val imageUrl = if (isContinueWatching) content.backdropUrl else content.posterUrl
-    val titleStyle = if (compact) {
+    val titleStyle = if (scale < 0.85f) {
         androidx.compose.material3.MaterialTheme.typography.labelMedium
     } else {
         androidx.compose.material3.MaterialTheme.typography.titleMedium
@@ -149,7 +154,7 @@ fun ContentCard(
             }
         }
 
-        Spacer(Modifier.height(if (compact) 6.dp else 8.dp))
+        Spacer(Modifier.height(if (scale < 0.85f) 6.dp else 8.dp))
 
         Text(
             text = content.title,

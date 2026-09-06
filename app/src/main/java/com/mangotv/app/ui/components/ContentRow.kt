@@ -44,7 +44,11 @@ fun ContentRow(
     // Used by the movie detail page to fit its whole layout on one screen
     // without scrolling — Home never passes this, so its rows are
     // completely unaffected.
-    compact: Boolean = false
+    compact: Boolean = false,
+    // Forwarded straight to ContentCard — see its own doc for why this is
+    // independent of `compact`. Also scales the gap between cards so a
+    // smaller poster grid stays tight instead of looking gappy.
+    posterScale: Float = 1f
 ) {
     var rowSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -108,14 +112,15 @@ fun ContentRow(
                 Modifier
             },
             contentPadding = PaddingValues(horizontal = MangoDimens.ScreenPaddingHorizontal),
-            horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else MangoDimens.CardSpacing)
+            horizontalArrangement = Arrangement.spacedBy((if (compact) 12.dp else MangoDimens.CardSpacing) * posterScale)
         ) {
             items(section.items, key = { it.id }) { content ->
                 ContentCard(
                     content = content,
                     style = section.style,
                     onClick = { onItemClick(content) },
-                    compact = compact
+                    compact = compact,
+                    posterScale = posterScale
                 )
             }
         }
