@@ -173,7 +173,7 @@ private fun HomeContent(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalBringIntoViewSpec provides MangoMotion.FastCenteredBringIntoViewSpec) {
+        CompositionLocalProvider(LocalBringIntoViewSpec provides MangoMotion.SnapCenteredBringIntoViewSpec) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier
