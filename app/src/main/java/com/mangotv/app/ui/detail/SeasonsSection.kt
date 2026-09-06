@@ -44,7 +44,6 @@ import com.mangotv.app.data.model.Episode
 import com.mangotv.app.data.model.Season
 import com.mangotv.app.ui.components.TvFocusSurface
 import com.mangotv.app.ui.components.rememberOpaqueImageRequest
-import com.mangotv.app.ui.theme.MangoAmber
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoSurfaceHigh
 import com.mangotv.app.ui.theme.TextPrimary
@@ -139,6 +138,15 @@ fun SeasonsSection(
     }
 }
 
+/**
+ * Styled to echo the hero's Play button and icon buttons rather than the
+ * old flat amber-tinted circle: selected is a solid white fill with bold
+ * black text (same "confident, high-contrast active state" as
+ * MangoButtonStyle.LIGHT), unselected is the same frosted glass tint
+ * HeroIconButton rests at. Focus (amber border/scale/elevation) still
+ * comes from TvFocusSurface's own default, unchanged from every other
+ * focusable element on this screen.
+ */
 @Composable
 private fun SeasonPill(
     seasonNumber: Int,
@@ -149,15 +157,19 @@ private fun SeasonPill(
     TvFocusSurface(
         onClick = onClick,
         shape = CircleShape,
-        backgroundColor = if (selected) MangoAmber.copy(alpha = 0.25f) else MangoSurfaceHigh,
+        backgroundColor = if (selected) Color.White else Color.White.copy(alpha = 0.12f),
         onFocusChanged = { focused = it },
         bringIntoViewOnFocus = false,
-        modifier = Modifier.size(48.dp)
+        modifier = Modifier.size(52.dp)
     ) {
         Text(
             text = seasonNumber.toString(),
-            color = if (focused || selected) TextPrimary else TextSecondary,
-            fontWeight = if (focused || selected) FontWeight.Bold else FontWeight.Medium,
+            color = when {
+                selected -> Color.Black
+                focused -> TextPrimary
+                else -> TextSecondary
+            },
+            fontWeight = if (selected || focused) FontWeight.Bold else FontWeight.SemiBold,
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.align(Alignment.Center)
         )
