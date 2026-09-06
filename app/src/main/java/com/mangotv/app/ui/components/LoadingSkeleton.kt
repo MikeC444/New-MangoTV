@@ -66,8 +66,9 @@ fun HomeLoadingSkeleton(modifier: Modifier = Modifier) {
     }
 }
 
+/** Reused by other screens' own loading skeletons (e.g. Sources), not just this one. */
 @Composable
-private fun ShimmerBox(
+fun ShimmerBox(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(MangoDimens.CardCornerRadius)
 ) {

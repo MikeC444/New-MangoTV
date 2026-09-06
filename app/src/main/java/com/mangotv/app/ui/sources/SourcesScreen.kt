@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.SearchOff
@@ -41,12 +44,14 @@ import coil.compose.AsyncImage
 import com.mangotv.app.data.model.Stream
 import com.mangotv.app.navigation.MangoRoutes
 import com.mangotv.app.ui.components.FullScreenErrorState
-import com.mangotv.app.ui.components.HomeLoadingSkeleton
+import com.mangotv.app.ui.components.HeroIconButton
 import com.mangotv.app.ui.components.MangoButton
 import com.mangotv.app.ui.components.MangoButtonStyle
+import com.mangotv.app.ui.components.ShimmerBox
 import com.mangotv.app.ui.components.rememberOpaqueImageRequest
 import com.mangotv.app.ui.theme.DividerSubtle
 import com.mangotv.app.ui.theme.MangoBackground
+import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.TextPrimary
 import com.mangotv.app.ui.theme.TextSecondary
 import com.mangotv.app.ui.theme.TextTertiary
@@ -66,7 +71,7 @@ fun SourcesScreen(
             .background(MangoBackground)
     ) {
         when (val state = uiState) {
-            is SourcesUiState.Loading -> HomeLoadingSkeleton()
+            is SourcesUiState.Loading -> SourcesLoadingSkeleton(onBack = onBack)
             is SourcesUiState.Error -> FullScreenErrorState(
                 message = state.message,
                 onRetry = viewModel::load
@@ -83,6 +88,80 @@ fun SourcesScreen(
                     }
                 }
             )
+        }
+    }
+}
+
+/**
+ * Shown the instant Play is tapped, before getDetails/getStreams resolve —
+ * mirrors [SourcesContent]'s actual layout (info panel + header + source
+ * list) with shimmer placeholders standing in for data, rather than the
+ * generic Home-shaped skeleton this screen used to borrow. Everything that
+ * doesn't depend on network data — the back button, the "Select a Source"
+ * header, and the safety footer — renders for real immediately, so the
+ * source selector reads as already there rather than as an unrelated
+ * loading interstitial.
+ */
+@Composable
+private fun SourcesLoadingSkeleton(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    val rowShape = RoundedCornerShape(MangoDimens.CardCornerRadius)
+
+    Row(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(0.35f)
+                .fillMaxHeight()
+                .padding(22.dp)
+        ) {
+            HeroIconButton(icon = Icons.Filled.ArrowBack, contentDescription = "Back", onClick = onBack)
+            Spacer(Modifier.height(16.dp))
+            ShimmerBox(modifier = Modifier.size(width = 84.dp, height = 126.dp))
+            Spacer(Modifier.height(14.dp))
+            ShimmerBox(modifier = Modifier.width(90.dp).height(18.dp))
+            Spacer(Modifier.height(10.dp))
+            ShimmerBox(modifier = Modifier.width(200.dp).height(26.dp))
+            Spacer(Modifier.height(10.dp))
+            ShimmerBox(modifier = Modifier.width(160.dp).height(16.dp))
+            Spacer(Modifier.height(12.dp))
+            ShimmerBox(modifier = Modifier.fillMaxWidth().height(14.dp))
+            Spacer(Modifier.height(6.dp))
+            ShimmerBox(modifier = Modifier.fillMaxWidth().height(14.dp))
+            Spacer(Modifier.height(6.dp))
+            ShimmerBox(modifier = Modifier.width(140.dp).height(14.dp))
+            Spacer(Modifier.weight(1f))
+            ShimmerBox(modifier = Modifier.fillMaxWidth().height(62.dp))
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(0.65f)
+                .fillMaxSize()
+                .padding(horizontal = 36.dp, vertical = 22.dp)
+        ) {
+            Text(
+                text = "Select a Source",
+                color = TextPrimary,
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Choose the best quality and server for your stream.",
+                color = TextSecondary,
+                style = MaterialTheme.typography.labelLarge
+            )
+            Spacer(Modifier.height(16.dp))
+            ShimmerBox(modifier = Modifier.width(260.dp).height(36.dp))
+            Spacer(Modifier.height(14.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                repeat(5) {
+                    ShimmerBox(modifier = Modifier.fillMaxWidth().height(76.dp), shape = rowShape)
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            SafetyBar()
         }
     }
 }

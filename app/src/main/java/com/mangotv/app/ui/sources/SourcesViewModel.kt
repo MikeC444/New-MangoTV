@@ -56,24 +56,30 @@ class SourcesViewModel(private val savedStateHandle: SavedStateHandle) : ViewMod
 
             val providers = ProviderRegistry.activeProviders()
             val owningProvider = providers.find { it.id == providerId }
-            val content = owningProvider?.let { runCatching { it.getDetails(contentType, contentId) }.getOrNull() }
+
+            // getDetails and every provider's getStreams are independent of
+            // each other (streams only need the raw id/season/episode args,
+            // not the resolved Content) — run them all concurrently rather
+            // than waiting on getDetails first, so the screen isn't stuck on
+            // the loading skeleton for the sum of both round trips.
+            val (content, streams) = coroutineScope {
+                val contentDeferred = async {
+                    owningProvider?.let { runCatching { it.getDetails(contentType, contentId) }.getOrNull() }
+                }
+                // Different addons can each offer different quality options
+                // for the same title, so every active provider is queried
+                // and merged — unlike getDetails above, which only makes
+                // sense against the one addon that owns this content.
+                val streamDeferreds = providers.map { provider ->
+                    async { runCatching { provider.getStreams(contentType, contentId, season, episode) }.getOrDefault(emptyList()) }
+                }
+                contentDeferred.await() to streamDeferreds.awaitAll().flatten()
+            }
+
             if (content == null) {
                 _uiState.value = SourcesUiState.Error("Couldn't load details for this title.")
                 return@launch
             }
-
-            // Different addons can each offer different quality options for
-            // the same title, so every active provider is queried and
-            // merged — unlike getDetails above, which only makes sense
-            // against the one addon that owns this content. Queried in
-            // parallel since the player screen now re-runs this same fetch
-            // a second time (it re-derives everything from route args
-            // rather than taking anything in-memory from this screen).
-            val streams = coroutineScope {
-                providers.map { provider ->
-                    async { runCatching { provider.getStreams(contentType, contentId, season, episode) }.getOrDefault(emptyList()) }
-                }.awaitAll()
-            }.flatten()
 
             val recommendedStreamId = streams
                 .sortedWith(compareBy<Stream> { it.resolutionTier.ordinal }.thenByDescending { it.seeders ?: -1 })
