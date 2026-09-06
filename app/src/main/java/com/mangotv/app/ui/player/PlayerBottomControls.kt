@@ -99,7 +99,8 @@ fun PlayerBottomControls(
             onClick = onPlayPause,
             focusRequester = playPauseFocusRequester,
             focusDown = timelineFocusRequester,
-            onFocusChanged = onTransportFocused
+            onFocusChanged = onTransportFocused,
+            showBackground = false
         )
         Spacer(Modifier.width(10.dp))
         HeroIconButton(
@@ -109,7 +110,8 @@ fun PlayerBottomControls(
             focusRequester = rewindFocusRequester,
             focusDown = timelineFocusRequester,
             onFocusChanged = onTransportFocused,
-            compact = true
+            compact = true,
+            showBackground = false
         )
         Spacer(Modifier.width(10.dp))
         HeroIconButton(
@@ -120,7 +122,8 @@ fun PlayerBottomControls(
             focusRight = firstIconRequester,
             focusDown = timelineFocusRequester,
             onFocusChanged = onTransportFocused,
-            compact = true
+            compact = true,
+            showBackground = false
         )
 
         Spacer(Modifier.width(18.dp))
@@ -149,7 +152,8 @@ fun PlayerBottomControls(
                 focusLeft = forwardFocusRequester,
                 focusDown = timelineFocusRequester,
                 onFocusChanged = onIconRowFocused,
-                compact = true
+                compact = true,
+                showBackground = false
             )
             Spacer(Modifier.width(8.dp))
         }
@@ -162,7 +166,8 @@ fun PlayerBottomControls(
                 focusLeft = if (!showSubtitles) forwardFocusRequester else null,
                 focusDown = timelineFocusRequester,
                 onFocusChanged = onIconRowFocused,
-                compact = true
+                compact = true,
+                showBackground = false
             )
             Spacer(Modifier.width(8.dp))
         }
@@ -175,7 +180,8 @@ fun PlayerBottomControls(
                 focusLeft = if (!showSubtitles && !showAudio) forwardFocusRequester else null,
                 focusDown = timelineFocusRequester,
                 onFocusChanged = onIconRowFocused,
-                compact = true
+                compact = true,
+                showBackground = false
             )
             Spacer(Modifier.width(8.dp))
         }
@@ -187,7 +193,8 @@ fun PlayerBottomControls(
             focusLeft = if (!showSubtitles && !showAudio && !showQuality) forwardFocusRequester else null,
             focusDown = timelineFocusRequester,
             onFocusChanged = onIconRowFocused,
-            compact = true
+            compact = true,
+            showBackground = false
         )
         if (showNextEpisode) {
             Spacer(Modifier.width(8.dp))
@@ -198,7 +205,8 @@ fun PlayerBottomControls(
                 focusRequester = nextEpisodeFocusRequester,
                 focusDown = timelineFocusRequester,
                 onFocusChanged = onIconRowFocused,
-                compact = true
+                compact = true,
+                showBackground = false
             )
         }
     }

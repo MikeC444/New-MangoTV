@@ -50,7 +50,8 @@ fun PlayerTopBar(
             onClick = onBack,
             focusRequester = backFocusRequester,
             focusDown = backFocusDown,
-            onFocusChanged = onBackFocusChanged
+            onFocusChanged = onBackFocusChanged,
+            showBackground = false
         )
 
         Column(
