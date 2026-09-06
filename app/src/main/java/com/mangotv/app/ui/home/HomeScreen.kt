@@ -1,8 +1,7 @@
 package com.mangotv.app.ui.home
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -13,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -41,7 +39,6 @@ import com.mangotv.app.ui.components.HomeEmptyState
 import com.mangotv.app.ui.components.HomeLoadingSkeleton
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
-import com.mangotv.app.ui.theme.MangoMotion
 import kotlinx.coroutines.launch
 
 @Composable
@@ -95,7 +92,6 @@ private fun HomeEmptyScreen(onNavigate: (String) -> Unit) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HomeContent(
     state: HomeUiState.Success,
@@ -115,6 +111,11 @@ private fun HomeContent(
     // content row (see onNavigateDownFromHero below); flipped back true by
     // every explicit path that returns focus to the nav bar or hero.
     var heroRegionFocused by remember { mutableStateOf(true) }
+
+    // Which row (index into state.sections, not the LazyColumn's own item
+    // index) currently holds focus -- drives the explicit centering effect
+    // below. null while focus is in the hero/nav region.
+    var focusedRowIndex by remember { mutableStateOf<Int?>(null) }
 
     val isScrolled by remember {
         derivedStateOf {
@@ -167,78 +168,106 @@ private fun HomeContent(
             }
     }
 
+    // Explicitly centers whichever row just gained focus, replacing an
+    // earlier attempt that relied on Compose's automatic focus-triggered
+    // bring-into-view (a custom BringIntoViewSpec recomputed every
+    // animation frame) -- that mechanism stuttered no matter how its
+    // animation curve was tuned, even on a single isolated press, so the
+    // fix is to stop routing through it entirely rather than keep tuning
+    // it. LaunchedEffect's own "cancel the previous coroutine when the
+    // key changes" behavior still coalesces rapid repeats, same as the
+    // watchdog above -- what's different is that the mechanism being
+    // restarted is now a single ordinary animateScrollBy, not that
+    // per-frame recompute loop.
+    LaunchedEffect(focusedRowIndex, heroRegionFocused) {
+        val rowIndex = focusedRowIndex ?: return@LaunchedEffect
+        if (heroRegionFocused) return@LaunchedEffect
+        val lazyIndex = rowIndex + 1 // offset for the "hero" item at index 0
+        val info = listState.layoutInfo.visibleItemsInfo.find { it.index == lazyIndex }
+        if (info != null) {
+            val viewportHeight = listState.layoutInfo.viewportSize.height
+            val itemCenter = info.offset + info.size / 2f
+            val delta = itemCenter - viewportHeight / 2f
+            listState.animateScrollBy(delta)
+        } else {
+            // Not yet visible at all (a big jump) -- get it roughly on
+            // screen first; the settled position won't be perfectly
+            // centered but is correct and visible, which matters more.
+            listState.animateScrollToItem(lazyIndex)
+        }
+    }
+
     fun navigateToContent(target: Content) {
         val providerId = target.providerId ?: return
         onNavigate(MangoRoutes.detail(providerId, target.type, target.id))
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalBringIntoViewSpec provides MangoMotion.SmoothCenteredBringIntoViewSpec) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .nestedScroll(heroScrollLock)
-                    .fillMaxSize()
-            ) {
-                item(key = "hero") {
-                    HeroSection(
-                        items = state.heroItems,
-                        playFocusRequester = playFocusRequester,
-                        onPlay = { content ->
-                            content.providerId?.let { pid ->
-                                onNavigate(MangoRoutes.sources(pid, content.type, content.id))
-                            }
-                        },
-                        onAddToList = {},
-                        onMoreInfo = ::navigateToContent,
-                        navUpFocusRequester = homeNavFocusRequester,
-                        onNavigateUpPastHero = {
-                            // Imperative, not focusProperties-driven: pressing UP
-                            // from any hero button forces the list back to true
-                            // top and moves focus straight to the (always
-                            // composed, never-virtualized) nav bar, rather than
-                            // routing through a FocusRequester on a lazily
-                            // composed list item — see HeroSection for why that
-                            // approach crashed.
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .nestedScroll(heroScrollLock)
+                .fillMaxSize()
+        ) {
+            item(key = "hero") {
+                HeroSection(
+                    items = state.heroItems,
+                    playFocusRequester = playFocusRequester,
+                    onPlay = { content ->
+                        content.providerId?.let { pid ->
+                            onNavigate(MangoRoutes.sources(pid, content.type, content.id))
+                        }
+                    },
+                    onAddToList = {},
+                    onMoreInfo = ::navigateToContent,
+                    navUpFocusRequester = homeNavFocusRequester,
+                    onNavigateUpPastHero = {
+                        // Imperative, not focusProperties-driven: pressing UP
+                        // from any hero button forces the list back to true
+                        // top and moves focus straight to the (always
+                        // composed, never-virtualized) nav bar, rather than
+                        // routing through a FocusRequester on a lazily
+                        // composed list item — see HeroSection for why that
+                        // approach crashed.
+                        heroRegionFocused = true
+                        coroutineScope.launch {
+                            listState.scrollToItem(0, 0)
+                            runCatching { homeNavFocusRequester.requestFocus() }
+                        }
+                    },
+                    onNavigateDownFromHero = {
+                        // Leaving the hero/nav region: let the watchdog
+                        // above stop pinning the list, since scrolling into
+                        // the first content row from here is desired.
+                        heroRegionFocused = false
+                    }
+                )
+            }
+            itemsIndexed(state.sections, key = { _, section -> section.id }) { index, section ->
+                ContentRow(
+                    section = section,
+                    onItemClick = ::navigateToContent,
+                    modifier = Modifier.padding(bottom = MangoDimens.RowSpacing),
+                    posterScale = 0.75f,
+                    onFocusChanged = { hasFocus -> if (hasFocus) focusedRowIndex = index },
+                    onNavigateUpPastRow = if (index == 0) {
+                        {
+                            // Hero buttons no longer auto-scroll into view
+                            // (see HeroSection) — returning to them from the
+                            // first content row needs to be explicit too.
                             heroRegionFocused = true
                             coroutineScope.launch {
                                 listState.scrollToItem(0, 0)
-                                runCatching { homeNavFocusRequester.requestFocus() }
+                                runCatching { playFocusRequester.requestFocus() }
                             }
-                        },
-                        onNavigateDownFromHero = {
-                            // Leaving the hero/nav region: let the watchdog
-                            // above stop pinning the list, since scrolling into
-                            // the first content row from here is desired.
-                            heroRegionFocused = false
                         }
-                    )
-                }
-                itemsIndexed(state.sections, key = { _, section -> section.id }) { index, section ->
-                    ContentRow(
-                        section = section,
-                        onItemClick = ::navigateToContent,
-                        modifier = Modifier.padding(bottom = MangoDimens.RowSpacing),
-                        posterScale = 0.75f,
-                        onNavigateUpPastRow = if (index == 0) {
-                            {
-                                // Hero buttons no longer auto-scroll into view
-                                // (see HeroSection) — returning to them from the
-                                // first content row needs to be explicit too.
-                                heroRegionFocused = true
-                                coroutineScope.launch {
-                                    listState.scrollToItem(0, 0)
-                                    runCatching { playFocusRequester.requestFocus() }
-                                }
-                            }
-                        } else {
-                            null
-                        }
-                    )
-                }
-                item(key = "bottom_spacer") {
-                    Spacer(Modifier.height(48.dp))
-                }
+                    } else {
+                        null
+                    }
+                )
+            }
+            item(key = "bottom_spacer") {
+                Spacer(Modifier.height(48.dp))
             }
         }
 

@@ -8,25 +8,17 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.relocation.BringIntoViewResponder
-import androidx.compose.foundation.relocation.bringIntoViewResponder
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.HomeSection
@@ -51,40 +43,16 @@ fun ContentRow(
     // Forwarded straight to ContentCard — see its own doc for why this is
     // independent of `compact`. Also scales the gap between cards so a
     // smaller poster grid stays tight instead of looking gappy.
-    posterScale: Float = 1f
+    posterScale: Float = 1f,
+    // Reports whether any card in this row holds focus, i.e. whether this
+    // is "the" focused row — Home uses this to drive its own explicit
+    // scroll-to-center-this-row effect (see HomeScreen.kt) rather than
+    // relying on Compose's automatic focus-triggered bring-into-view,
+    // which proved impossible to keep smooth for centering.
+    onFocusChanged: (Boolean) -> Unit = {}
 ) {
-    var rowSize by remember { mutableStateOf(IntSize.Zero) }
-
-    // Moving focus between cards within this row still changes which
-    // element is focused, and the framework's own automatic "keep the
-    // focused thing in view" behavior reports that CARD's rect up to the
-    // enclosing (vertical) LazyColumn — which shifts slightly as each card
-    // scale-animates on focus (TvFocusSurface's focusedScale), reading as
-    // "slightly outside the viewport" and nudging the whole page on every
-    // horizontal move. Reporting this row's own fixed bounds instead of the
-    // focused card's shifting sub-rect makes what the outer list sees
-    // invariant to horizontal navigation — it only reacts when the focused
-    // ROW itself actually changes.
-    val rowBringIntoViewResponder = remember {
-        object : BringIntoViewResponder {
-            override fun calculateRectForParent(localRect: Rect): Rect {
-                return Rect(0f, 0f, rowSize.width.toFloat(), rowSize.height.toFloat())
-            }
-
-            override suspend fun bringChildIntoView(localRect: () -> Rect?) {
-                // No-op: this wrapper isn't itself scrollable — the LazyRow
-                // below already resolves its own horizontal
-                // scroll-into-view before a request reaches here. This
-                // exists only to normalize the rect handed further up (see
-                // calculateRectForParent).
-            }
-        }
-    }
-
     Column(
-        modifier = modifier
-            .onSizeChanged { rowSize = it }
-            .bringIntoViewResponder(rowBringIntoViewResponder)
+        modifier = modifier.onFocusChanged { onFocusChanged(it.hasFocus) }
     ) {
         Text(
             text = section.title,
@@ -95,11 +63,10 @@ fun ContentRow(
                 vertical = if (compact) 6.dp else 12.dp
             )
         )
-        // Home's outer LazyColumn provides a centering BringIntoViewSpec
-        // (see MangoMotion.SmoothCenteredBringIntoViewSpec) that would
-        // otherwise be inherited here too — horizontal card-to-card
-        // movement should keep the plain "scroll the minimum needed"
-        // positioning instead, so it doesn't re-center on every move.
+        // Fast animation for horizontal card-to-card scroll-into-view;
+        // Home's own vertical row centering is driven explicitly instead
+        // (see HomeScreen.kt) rather than through this composition local,
+        // so this only ever affects this row's own horizontal LazyRow.
         CompositionLocalProvider(LocalBringIntoViewSpec provides MangoMotion.FastBringIntoViewSpec) {
             LazyRow(
                 modifier = if (onNavigateUpPastRow != null) {
