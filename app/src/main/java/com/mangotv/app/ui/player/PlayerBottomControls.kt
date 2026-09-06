@@ -39,13 +39,15 @@ import kotlinx.coroutines.delay
  * quality/settings/next-episode icon cluster on the right — all in one row,
  * matching the reference layout.
  *
- * Focus pinning here (not left to Compose's default geometric search)
- * exists for two specific reasons: forward10 -> subtitle (and back) skips
- * over the timeline when moving laterally between the button clusters,
- * since the timeline intercepts LEFT/RIGHT for seeking rather than
- * continuing focus traversal once it has focus; and every button pins
- * focusDown to the timeline, since there's nothing visually below this row
- * for the default search to find on its own.
+ * The timeline sits in natural left/right tab order between forward10 and
+ * the icon row (default Compose focus search finds it on its own, since
+ * the intervening TimeText labels aren't focusable) — this is the primary,
+ * discoverable way to reach it: RIGHT from forward10 or LEFT from the
+ * first icon selects the timeline, and LEFT/RIGHT there then scrubs
+ * (handled by the root key interceptor, zone-gated on the timeline having
+ * focus). Every button also pins focusDown to the timeline as a shortcut,
+ * since there's nothing visually below this row for the default search to
+ * find on its own.
  */
 @Composable
 fun PlayerBottomControls(
@@ -77,18 +79,6 @@ fun PlayerBottomControls(
     val isPlaying = phase is PlaybackPhase.Playing
     val onTransportFocused: (Boolean) -> Unit = { if (it) onFocusZoneChanged(PlayerFocusZone.TRANSPORT) }
     val onIconRowFocused: (Boolean) -> Unit = { if (it) onFocusZoneChanged(PlayerFocusZone.ICON_ROW) }
-
-    // Settings is always shown, so the icon row is never empty — but which
-    // button is first (and therefore needs the focusLeft pin back to
-    // forward10, mirroring forward10's own focusRight pin to it) shifts
-    // depending on which of subtitles/audio/quality actually have real
-    // options to show.
-    val firstIconRequester = when {
-        showSubtitles -> subtitleFocusRequester
-        showAudio -> audioFocusRequester
-        showQuality -> qualityFocusRequester
-        else -> settingsFocusRequester
-    }
 
     Row(
         modifier = modifier.fillMaxWidth().padding(horizontal = 40.dp, vertical = 28.dp),
@@ -122,7 +112,6 @@ fun PlayerBottomControls(
             contentDescription = "Forward 10 seconds",
             onClick = { onSeek(10_000) },
             focusRequester = forwardFocusRequester,
-            focusRight = firstIconRequester,
             focusDown = timelineFocusRequester,
             onFocusChanged = onTransportFocused,
             compact = true,
@@ -153,7 +142,6 @@ fun PlayerBottomControls(
                 contentDescription = "Subtitles",
                 onClick = onSubtitles,
                 focusRequester = subtitleFocusRequester,
-                focusLeft = forwardFocusRequester,
                 focusDown = timelineFocusRequester,
                 onFocusChanged = onIconRowFocused,
                 compact = true,
@@ -168,7 +156,6 @@ fun PlayerBottomControls(
                 contentDescription = "Audio",
                 onClick = onAudio,
                 focusRequester = audioFocusRequester,
-                focusLeft = if (!showSubtitles) forwardFocusRequester else null,
                 focusDown = timelineFocusRequester,
                 onFocusChanged = onIconRowFocused,
                 compact = true,
@@ -183,7 +170,6 @@ fun PlayerBottomControls(
                 contentDescription = "Quality",
                 onClick = onQuality,
                 focusRequester = qualityFocusRequester,
-                focusLeft = if (!showSubtitles && !showAudio) forwardFocusRequester else null,
                 focusDown = timelineFocusRequester,
                 onFocusChanged = onIconRowFocused,
                 compact = true,
@@ -197,7 +183,6 @@ fun PlayerBottomControls(
             contentDescription = "Player settings",
             onClick = onSettings,
             focusRequester = settingsFocusRequester,
-            focusLeft = if (!showSubtitles && !showAudio && !showQuality) forwardFocusRequester else null,
             focusDown = timelineFocusRequester,
             onFocusChanged = onIconRowFocused,
             compact = true,
