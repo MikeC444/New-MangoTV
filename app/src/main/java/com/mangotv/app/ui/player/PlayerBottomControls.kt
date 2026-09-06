@@ -43,11 +43,13 @@ import kotlinx.coroutines.delay
  * the icon row (default Compose focus search finds it on its own, since
  * the intervening TimeText labels aren't focusable) — this is the primary,
  * discoverable way to reach it: RIGHT from forward10 or LEFT from the
- * first icon selects the timeline, and LEFT/RIGHT there then scrubs
- * (handled by the root key interceptor, zone-gated on the timeline having
- * focus). Every button also pins focusDown to the timeline as a shortcut,
- * since there's nothing visually below this row for the default search to
- * find on its own.
+ * first icon moves focus onto the timeline. Merely being focused doesn't
+ * capture LEFT/RIGHT, though — the user has to press DPAD_CENTER/Enter to
+ * select it and enter scrub mode (root key interceptor), so LEFT/RIGHT can
+ * still move focus past the timeline onto the next button instead of
+ * getting stuck the instant it's highlighted. Every button also pins
+ * focusDown to the timeline as a shortcut, since there's nothing visually
+ * below this row for the default search to find on its own.
  */
 @Composable
 fun PlayerBottomControls(
@@ -66,6 +68,7 @@ fun PlayerBottomControls(
     onNextEpisode: () -> Unit,
     onFocusZoneChanged: (PlayerFocusZone) -> Unit,
     modifier: Modifier = Modifier,
+    isTimelineScrubbing: Boolean = false,
     playPauseFocusRequester: FocusRequester? = null,
     rewindFocusRequester: FocusRequester? = null,
     forwardFocusRequester: FocusRequester? = null,
@@ -126,6 +129,7 @@ fun PlayerBottomControls(
         PlayerTimeline(
             exoPlayer = exoPlayer,
             phase = phase,
+            isScrubbing = isTimelineScrubbing,
             onFocusChanged = { focused -> if (focused) onFocusZoneChanged(PlayerFocusZone.TIMELINE) },
             modifier = Modifier.weight(1f),
             focusRequester = timelineFocusRequester,

@@ -177,6 +177,18 @@ private fun PlaybackContent(
         bumpInteraction()
     }
 
+    // Merely focusing the timeline no longer captures LEFT/RIGHT — the user
+    // has to actively select it (DPAD_CENTER/Enter) to start scrubbing, or
+    // LEFT/RIGHT would fall through to normal focus traversal and never let
+    // the user move focus past the timeline to reach the icon row. Reset
+    // whenever focus leaves the timeline by any path (UP, BACK, controls
+    // hiding), so a stale "still scrubbing" state can never survive a zone
+    // change.
+    var timelineScrubbing by remember { mutableStateOf(false) }
+    LaunchedEffect(focusZone) {
+        if (focusZone != PlayerFocusZone.TIMELINE) timelineScrubbing = false
+    }
+
     // A stack, not a single nullable value: Subtitles/Audio/Quality/Source
     // Info can be reached either directly from their own bottom-row icon
     // (dismissing straight back to plain controls) or via Settings
@@ -335,19 +347,33 @@ private fun PlaybackContent(
             .focusRequester(rootFocusRequester)
             .focusable()
             .onPreviewKeyEvent { event ->
+                // The Fire TV remote's dedicated Play/Pause hardware button
+                // is a transport control, not a D-pad direction — it should
+                // always work (menu open or not, controls hidden or not),
+                // so it's handled before anything else below gets a say.
+                if (event.key == Key.MediaPlayPause || event.key == Key.MediaPlay || event.key == Key.MediaPause) {
+                    if (event.type == KeyEventType.KeyDown) {
+                        val isPlaying = phase is PlaybackPhase.Playing
+                        val shouldToggle = event.key == Key.MediaPlayPause ||
+                            (event.key == Key.MediaPlay && !isPlaying) ||
+                            (event.key == Key.MediaPause && isPlaying)
+                        if (shouldToggle) togglePlayPause()
+                    }
+                    return@onPreviewKeyEvent true
+                }
                 // While a menu is open, it owns all key handling itself
                 // (its own list navigation/selection) — don't fight it with
                 // the player's own global seek/reveal shortcuts.
                 if (activeOverlay != null) return@onPreviewKeyEvent false
                 // LEFT/RIGHT only seeks while the timeline itself has focus
-                // — deliberately not a global shortcut, so it can't be
-                // triggered by accident with nothing focused. Rewind10/
-                // Forward10 remain reachable as explicit buttons (a click,
-                // not a D-pad direction), and once focus is on any other
-                // button, LEFT/RIGHT navigates between buttons instead
-                // (handled by normal Compose focus search, which this
-                // returns false for).
-                val seekEligible = focusZone == PlayerFocusZone.TIMELINE
+                // AND the user has actively selected it (DPAD_CENTER/Enter,
+                // toggled below) — deliberately not just "has focus", so
+                // LEFT/RIGHT can still move focus past the timeline onto the
+                // next button instead of getting stuck seeking the instant
+                // it's merely highlighted. Rewind10/Forward10 remain
+                // reachable as explicit buttons (a click, not a D-pad
+                // direction) regardless of scrub state.
+                val seekEligible = focusZone == PlayerFocusZone.TIMELINE && timelineScrubbing
                 when (event.key) {
                     Key.DirectionLeft, Key.DirectionRight -> {
                         if (!seekEligible) return@onPreviewKeyEvent false
@@ -365,11 +391,23 @@ private fun PlaybackContent(
                         }
                     }
                     Key.DirectionCenter, Key.Enter -> {
-                        if (event.type == KeyEventType.KeyDown && !controlsVisible && focusZone == PlayerFocusZone.NONE) {
-                            controlsVisible = true
-                            true
-                        } else {
-                            false
+                        when {
+                            event.type != KeyEventType.KeyDown -> false
+                            // Selecting the timeline toggles scrub mode
+                            // in-place, rather than firing a click (it has
+                            // no onClick — TvFocusSurface isn't used here
+                            // since LEFT/RIGHT, not a click, is what drives
+                            // seeking once selected).
+                            focusZone == PlayerFocusZone.TIMELINE -> {
+                                timelineScrubbing = !timelineScrubbing
+                                bumpInteraction()
+                                true
+                            }
+                            !controlsVisible && focusZone == PlayerFocusZone.NONE -> {
+                                controlsVisible = true
+                                true
+                            }
+                            else -> false
                         }
                     }
                     else -> false
@@ -438,6 +476,7 @@ private fun PlaybackContent(
                         onSettings = { pushOverlay(PlayerOverlay.SETTINGS) },
                         onNextEpisode = {},
                         onFocusZoneChanged = ::onFocusZoneChanged,
+                        isTimelineScrubbing = timelineScrubbing,
                         playPauseFocusRequester = playPauseFocusRequester,
                         rewindFocusRequester = rewindFocusRequester,
                         forwardFocusRequester = forwardFocusRequester,
@@ -502,6 +541,7 @@ private fun PlaybackContent(
 
     BackHandler {
         when {
+            timelineScrubbing -> timelineScrubbing = false
             overlayStack.isNotEmpty() -> popOverlay()
             controlsVisible -> controlsVisible = false
             else -> onBack()

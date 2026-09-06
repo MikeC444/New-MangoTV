@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -36,10 +37,11 @@ import kotlinx.coroutines.delay
 
 /**
  * The center progress bar: position/buffered/duration, growing visibly when
- * focused. LEFT/RIGHT seeking while this has focus is handled by the root
- * player key interceptor (zone-gated on focus, not owned here) — this
+ * focused and gaining a white glow once the user selects it to scrub.
+ * LEFT/RIGHT seeking while selected is handled by the root player key
+ * interceptor (zone- and selection-gated, not owned here) — this
  * composable only reports its own focus state and draws the current
- * position/buffered fill.
+ * position/buffered fill plus the scrub-mode indicator.
  */
 @Composable
 fun PlayerTimeline(
@@ -47,6 +49,7 @@ fun PlayerTimeline(
     phase: PlaybackPhase,
     onFocusChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    isScrubbing: Boolean = false,
     focusRequester: FocusRequester? = null,
     focusUp: FocusRequester? = null
 ) {
@@ -73,7 +76,8 @@ fun PlayerTimeline(
 
     val barTween = tween<Dp>(MangoMotion.FastMillis, easing = MangoMotion.StandardEasing)
     val barHeight by animateDpAsState(if (isFocused) 12.dp else 6.dp, animationSpec = barTween, label = "timelineBarHeight")
-    val thumbSize by animateDpAsState(if (isFocused) 20.dp else 12.dp, animationSpec = barTween, label = "timelineThumbSize")
+    val thumbSize by animateDpAsState(if (isScrubbing) 24.dp else if (isFocused) 20.dp else 12.dp, animationSpec = barTween, label = "timelineThumbSize")
+    val glowSize by animateDpAsState(if (isScrubbing) 48.dp else 0.dp, animationSpec = barTween, label = "timelineGlowSize")
 
     var boxModifier = modifier
         .fillMaxWidth()
@@ -105,6 +109,14 @@ fun PlayerTimeline(
                 .height(barHeight)
                 .background(Color.White, RoundedCornerShape(percent = 50))
         )
+        if (isScrubbing) {
+            Box(
+                modifier = Modifier
+                    .offset(x = maxWidth * playedFraction - (glowSize / 2))
+                    .size(glowSize)
+                    .background(Brush.radialGradient(listOf(Color.White.copy(alpha = 0.45f), Color.Transparent)), CircleShape)
+            )
+        }
         Box(
             modifier = Modifier
                 .offset(x = maxWidth * playedFraction - (thumbSize / 2))
