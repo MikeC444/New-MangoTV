@@ -4,8 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.Tracks
+import com.mangotv.app.MangoTvApplication
 import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.model.Episode
+import com.mangotv.app.data.model.PlayerPreferences
 import com.mangotv.app.data.provider.ProviderRegistry
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -32,6 +35,8 @@ class PlayerViewModel(
     private val savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(application) {
 
+    private val preferencesRepository = (application as MangoTvApplication).container.playerPreferencesRepository
+
     private val providerId: String =
         URLDecoder.decode(savedStateHandle.get<String>("providerId").orEmpty(), "UTF-8")
     private val contentType: ContentType =
@@ -52,6 +57,17 @@ class PlayerViewModel(
 
     private val _playbackPhase = MutableStateFlow<PlaybackPhase>(PlaybackPhase.Loading)
     val playbackPhase: StateFlow<PlaybackPhase> = _playbackPhase.asStateFlow()
+
+    private val _audioTracks = MutableStateFlow<List<AudioTrackOption>>(emptyList())
+    val audioTracks: StateFlow<List<AudioTrackOption>> = _audioTracks.asStateFlow()
+
+    private val _subtitleTracks = MutableStateFlow<List<SubtitleTrackOption>>(emptyList())
+    val subtitleTracks: StateFlow<List<SubtitleTrackOption>> = _subtitleTracks.asStateFlow()
+
+    private val _qualityOptions = MutableStateFlow<List<QualityOption>>(emptyList())
+    val qualityOptions: StateFlow<List<QualityOption>> = _qualityOptions.asStateFlow()
+
+    val preferences: StateFlow<PlayerPreferences> = preferencesRepository.preferences
 
     init {
         load()
@@ -98,5 +114,19 @@ class PlayerViewModel(
 
     fun onPlaybackPhaseChanged(phase: PlaybackPhase) {
         _playbackPhase.value = phase
+    }
+
+    fun onTracksChanged(tracks: Tracks) {
+        _audioTracks.value = tracks.toAudioTrackOptions()
+        _subtitleTracks.value = tracks.toSubtitleTrackOptions()
+        _qualityOptions.value = tracks.toQualityOptions()
+    }
+
+    fun setAutoplayNextEpisode(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setAutoplayNextEpisode(enabled) }
+    }
+
+    fun setSkipIntroEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setSkipIntroEnabled(enabled) }
     }
 }

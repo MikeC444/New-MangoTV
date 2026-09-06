@@ -51,6 +51,9 @@ fun PlayerBottomControls(
     exoPlayer: ExoPlayer,
     phase: PlaybackPhase,
     showNextEpisode: Boolean,
+    showSubtitles: Boolean,
+    showAudio: Boolean,
+    showQuality: Boolean,
     onPlayPause: () -> Unit,
     onSeek: (Long) -> Unit,
     onSubtitles: () -> Unit,
@@ -73,6 +76,18 @@ fun PlayerBottomControls(
     val isPlaying = phase is PlaybackPhase.Playing
     val onTransportFocused: (Boolean) -> Unit = { if (it) onFocusZoneChanged(PlayerFocusZone.TRANSPORT) }
     val onIconRowFocused: (Boolean) -> Unit = { if (it) onFocusZoneChanged(PlayerFocusZone.ICON_ROW) }
+
+    // Settings is always shown, so the icon row is never empty — but which
+    // button is first (and therefore needs the focusLeft pin back to
+    // forward10, mirroring forward10's own focusRight pin to it) shifts
+    // depending on which of subtitles/audio/quality actually have real
+    // options to show.
+    val firstIconRequester = when {
+        showSubtitles -> subtitleFocusRequester
+        showAudio -> audioFocusRequester
+        showQuality -> qualityFocusRequester
+        else -> settingsFocusRequester
+    }
 
     Row(
         modifier = modifier.fillMaxWidth().padding(horizontal = 40.dp, vertical = 28.dp),
@@ -102,7 +117,7 @@ fun PlayerBottomControls(
             contentDescription = "Forward 10 seconds",
             onClick = { onSeek(10_000) },
             focusRequester = forwardFocusRequester,
-            focusRight = subtitleFocusRequester,
+            focusRight = firstIconRequester,
             focusDown = timelineFocusRequester,
             onFocusChanged = onTransportFocused,
             compact = true
@@ -125,42 +140,51 @@ fun PlayerBottomControls(
         TimeText(exoPlayer = exoPlayer, phase = phase, useDuration = true)
         Spacer(Modifier.width(18.dp))
 
-        HeroIconButton(
-            icon = Icons.Filled.Subtitles,
-            contentDescription = "Subtitles",
-            onClick = onSubtitles,
-            focusRequester = subtitleFocusRequester,
-            focusLeft = forwardFocusRequester,
-            focusDown = timelineFocusRequester,
-            onFocusChanged = onIconRowFocused,
-            compact = true
-        )
-        Spacer(Modifier.width(8.dp))
-        HeroIconButton(
-            icon = Icons.Filled.VolumeUp,
-            contentDescription = "Audio",
-            onClick = onAudio,
-            focusRequester = audioFocusRequester,
-            focusDown = timelineFocusRequester,
-            onFocusChanged = onIconRowFocused,
-            compact = true
-        )
-        Spacer(Modifier.width(8.dp))
-        HeroIconButton(
-            icon = Icons.Filled.HighQuality,
-            contentDescription = "Quality",
-            onClick = onQuality,
-            focusRequester = qualityFocusRequester,
-            focusDown = timelineFocusRequester,
-            onFocusChanged = onIconRowFocused,
-            compact = true
-        )
-        Spacer(Modifier.width(8.dp))
+        if (showSubtitles) {
+            HeroIconButton(
+                icon = Icons.Filled.Subtitles,
+                contentDescription = "Subtitles",
+                onClick = onSubtitles,
+                focusRequester = subtitleFocusRequester,
+                focusLeft = forwardFocusRequester,
+                focusDown = timelineFocusRequester,
+                onFocusChanged = onIconRowFocused,
+                compact = true
+            )
+            Spacer(Modifier.width(8.dp))
+        }
+        if (showAudio) {
+            HeroIconButton(
+                icon = Icons.Filled.VolumeUp,
+                contentDescription = "Audio",
+                onClick = onAudio,
+                focusRequester = audioFocusRequester,
+                focusLeft = if (!showSubtitles) forwardFocusRequester else null,
+                focusDown = timelineFocusRequester,
+                onFocusChanged = onIconRowFocused,
+                compact = true
+            )
+            Spacer(Modifier.width(8.dp))
+        }
+        if (showQuality) {
+            HeroIconButton(
+                icon = Icons.Filled.HighQuality,
+                contentDescription = "Quality",
+                onClick = onQuality,
+                focusRequester = qualityFocusRequester,
+                focusLeft = if (!showSubtitles && !showAudio) forwardFocusRequester else null,
+                focusDown = timelineFocusRequester,
+                onFocusChanged = onIconRowFocused,
+                compact = true
+            )
+            Spacer(Modifier.width(8.dp))
+        }
         HeroIconButton(
             icon = Icons.Filled.Settings,
             contentDescription = "Player settings",
             onClick = onSettings,
             focusRequester = settingsFocusRequester,
+            focusLeft = if (!showSubtitles && !showAudio && !showQuality) forwardFocusRequester else null,
             focusDown = timelineFocusRequester,
             onFocusChanged = onIconRowFocused,
             compact = true

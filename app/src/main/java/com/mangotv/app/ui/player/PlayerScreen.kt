@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,11 +38,19 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Tracks
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.Episode
+import com.mangotv.app.data.model.PlayerPreferences
 import com.mangotv.app.data.model.Stream
 import com.mangotv.app.ui.components.FullScreenErrorState
+import com.mangotv.app.ui.player.overlay.AudioTrackMenu
 import com.mangotv.app.ui.player.overlay.PlaybackErrorOverlay
+import com.mangotv.app.ui.player.overlay.QualityMenu
+import com.mangotv.app.ui.player.overlay.SettingsPanel
+import com.mangotv.app.ui.player.overlay.SourceInfoPanel
+import com.mangotv.app.ui.player.overlay.SubtitlesMenu
 import com.mangotv.app.ui.theme.MangoAmber
 import kotlin.math.abs
 import kotlinx.coroutines.delay
@@ -55,6 +64,10 @@ fun PlayerScreen(
 ) {
     val screenState by viewModel.uiState.collectAsStateWithLifecycle()
     val playbackPhase by viewModel.playbackPhase.collectAsStateWithLifecycle()
+    val audioTracks by viewModel.audioTracks.collectAsStateWithLifecycle()
+    val subtitleTracks by viewModel.subtitleTracks.collectAsStateWithLifecycle()
+    val qualityOptions by viewModel.qualityOptions.collectAsStateWithLifecycle()
+    val preferences by viewModel.preferences.collectAsStateWithLifecycle()
 
     Box(
         modifier = modifier
@@ -77,7 +90,14 @@ fun PlayerScreen(
                     episode = state.episode,
                     stream = state.stream,
                     phase = playbackPhase,
+                    audioTracks = audioTracks,
+                    subtitleTracks = subtitleTracks,
+                    qualityOptions = qualityOptions,
+                    preferences = preferences,
                     onPhaseChanged = viewModel::onPlaybackPhaseChanged,
+                    onTracksChanged = viewModel::onTracksChanged,
+                    onAutoplayChange = viewModel::setAutoplayNextEpisode,
+                    onSkipIntroChange = viewModel::setSkipIntroEnabled,
                     onBack = onBack,
                     onChangeSource = onChangeSource
                 )
@@ -92,7 +112,14 @@ private fun PlaybackContent(
     episode: Episode?,
     stream: Stream,
     phase: PlaybackPhase,
+    audioTracks: List<AudioTrackOption>,
+    subtitleTracks: List<SubtitleTrackOption>,
+    qualityOptions: List<QualityOption>,
+    preferences: PlayerPreferences,
     onPhaseChanged: (PlaybackPhase) -> Unit,
+    onTracksChanged: (Tracks) -> Unit,
+    onAutoplayChange: (Boolean) -> Unit,
+    onSkipIntroChange: (Boolean) -> Unit,
     onBack: () -> Unit,
     onChangeSource: () -> Unit
 ) {
@@ -101,7 +128,7 @@ private fun PlaybackContent(
     val exoPlayer = remember { buildExoPlayer(context) }
 
     DisposableEffect(exoPlayer) {
-        val listener = PlayerListenerBridge(onPhaseChanged)
+        val listener = PlayerListenerBridge(onPhaseChanged, onTracksChanged)
         exoPlayer.addListener(listener)
         onDispose {
             exoPlayer.removeListener(listener)
@@ -149,6 +176,38 @@ private fun PlaybackContent(
         bumpInteraction()
     }
 
+    // A stack, not a single nullable value: Subtitles/Audio/Quality/Source
+    // Info can be reached either directly from their own bottom-row icon
+    // (dismissing straight back to plain controls) or via Settings
+    // (dismissing back to Settings instead) — popping one level handles
+    // both without hardcoding where each menu "returns to".
+    var overlayStack by remember { mutableStateOf<List<PlayerOverlay>>(emptyList()) }
+    val activeOverlay = overlayStack.lastOrNull()
+    fun pushOverlay(overlay: PlayerOverlay) {
+        overlayStack = overlayStack + overlay
+        bumpInteraction()
+    }
+    fun popOverlay() {
+        overlayStack = overlayStack.dropLast(1)
+        bumpInteraction()
+    }
+
+    var playbackSpeed by remember { mutableFloatStateOf(1f) }
+    fun changePlaybackSpeed(speed: Float) {
+        playbackSpeed = speed
+        exoPlayer.playbackParameters = PlaybackParameters(speed)
+        bumpInteraction()
+    }
+
+    // Only worth a menu when there's a real choice — matches the spec's
+    // "don't show a fake quality/options menu" instruction. Subtitles
+    // always has a synthetic "Off" entry (see toSubtitleTrackOptions), so
+    // size > 1 means at least one real track exists; audio can't be "off"
+    // so size > 1 means more than the single track already playing.
+    val showSubtitles = subtitleTracks.size > 1
+    val showAudio = audioTracks.size > 1
+    val showQuality = qualityOptions.count { it.trackGroup != null } > 1
+
     val rootFocusRequester = remember { FocusRequester() }
     val backFocusRequester = remember { FocusRequester() }
     val playPauseFocusRequester = remember { FocusRequester() }
@@ -179,9 +238,11 @@ private fun PlaybackContent(
 
     // Auto-hide after a few seconds of inactivity — re-armed by any bumped
     // interaction (seeking, toggling play/pause, moving focus) so it never
-    // fires while the user is actively using the controls.
-    LaunchedEffect(controlsVisible, interactionTick) {
-        if (controlsVisible) {
+    // fires while the user is actively using the controls, and suspended
+    // entirely while a menu is open (it shouldn't vanish while the user is
+    // reading options).
+    LaunchedEffect(controlsVisible, interactionTick, activeOverlay) {
+        if (controlsVisible && activeOverlay == null) {
             delay(4000)
             controlsVisible = false
         }
@@ -270,6 +331,10 @@ private fun PlaybackContent(
             .focusRequester(rootFocusRequester)
             .focusable()
             .onPreviewKeyEvent { event ->
+                // While a menu is open, it owns all key handling itself
+                // (its own list navigation/selection) — don't fight it with
+                // the player's own global seek/reveal shortcuts.
+                if (activeOverlay != null) return@onPreviewKeyEvent false
                 // Zone-gated: LEFT/RIGHT seeks only while nothing specific
                 // is focused yet or the timeline itself has focus; once
                 // focus is on an actual button, LEFT/RIGHT navigates
@@ -355,12 +420,15 @@ private fun PlaybackContent(
                         exoPlayer = exoPlayer,
                         phase = phase,
                         showNextEpisode = episode != null,
+                        showSubtitles = showSubtitles,
+                        showAudio = showAudio,
+                        showQuality = showQuality,
                         onPlayPause = ::togglePlayPause,
                         onSeek = ::seekByClick,
-                        onSubtitles = {},
-                        onAudio = {},
-                        onQuality = {},
-                        onSettings = {},
+                        onSubtitles = { pushOverlay(PlayerOverlay.SUBTITLES) },
+                        onAudio = { pushOverlay(PlayerOverlay.AUDIO) },
+                        onQuality = { pushOverlay(PlayerOverlay.QUALITY) },
+                        onSettings = { pushOverlay(PlayerOverlay.SETTINGS) },
                         onNextEpisode = {},
                         onFocusZoneChanged = ::onFocusZoneChanged,
                         playPauseFocusRequester = playPauseFocusRequester,
@@ -376,9 +444,49 @@ private fun PlaybackContent(
                 }
             }
         }
+
+        when (activeOverlay) {
+            PlayerOverlay.SUBTITLES -> SubtitlesMenu(
+                options = subtitleTracks,
+                onSelect = { option -> exoPlayer.selectSubtitleTrack(option); popOverlay() }
+            )
+            PlayerOverlay.AUDIO -> AudioTrackMenu(
+                options = audioTracks,
+                onSelect = { option -> exoPlayer.selectAudioTrack(option); popOverlay() }
+            )
+            PlayerOverlay.QUALITY -> QualityMenu(
+                options = qualityOptions,
+                onSelect = { option -> exoPlayer.selectQuality(option); popOverlay() }
+            )
+            PlayerOverlay.SETTINGS -> SettingsPanel(
+                playbackSpeed = playbackSpeed,
+                onPlaybackSpeedChange = ::changePlaybackSpeed,
+                preferences = preferences,
+                onAutoplayChange = onAutoplayChange,
+                onSkipIntroChange = onSkipIntroChange,
+                showSubtitles = showSubtitles,
+                showAudio = showAudio,
+                showQuality = showQuality,
+                onOpenSubtitles = { pushOverlay(PlayerOverlay.SUBTITLES) },
+                onOpenAudio = { pushOverlay(PlayerOverlay.AUDIO) },
+                onOpenQuality = { pushOverlay(PlayerOverlay.QUALITY) },
+                onOpenSourceInfo = { pushOverlay(PlayerOverlay.SOURCE_INFO) },
+                onChangeSource = onChangeSource
+            )
+            PlayerOverlay.SOURCE_INFO -> SourceInfoPanel(
+                stream = stream,
+                audioTracks = audioTracks,
+                subtitleTracks = subtitleTracks
+            )
+            null -> Unit
+        }
     }
 
     BackHandler {
-        if (controlsVisible) controlsVisible = false else onBack()
+        when {
+            overlayStack.isNotEmpty() -> popOverlay()
+            controlsVisible -> controlsVisible = false
+            else -> onBack()
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.mangotv.app.ui.player
 import android.content.Context
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -25,9 +26,15 @@ fun buildExoPlayer(context: Context): ExoPlayer {
         .build()
 }
 
-/** Translates raw ExoPlayer callbacks into this app's own [PlaybackPhase] model. */
+/**
+ * Translates raw ExoPlayer callbacks into this app's own [PlaybackPhase]
+ * model, plus [onTracksChanged] so the ViewModel can derive the audio/
+ * subtitle/quality option lists shown in Phase 3's menus without ever
+ * holding a live player reference itself.
+ */
 class PlayerListenerBridge(
-    private val onPhaseChanged: (PlaybackPhase) -> Unit
+    private val onPhaseChanged: (PlaybackPhase) -> Unit,
+    private val onTracksChangedCallback: (Tracks) -> Unit = {}
 ) : Player.Listener {
 
     override fun onPlaybackStateChanged(playbackState: Int) {
@@ -50,5 +57,9 @@ class PlayerListenerBridge(
         onPhaseChanged(
             PlaybackPhase.Error(PlaybackErrorType.UNKNOWN, error.message ?: "The selected stream could not be played.")
         )
+    }
+
+    override fun onTracksChanged(tracks: Tracks) {
+        onTracksChangedCallback(tracks)
     }
 }

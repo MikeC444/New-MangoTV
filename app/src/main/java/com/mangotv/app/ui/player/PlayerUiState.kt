@@ -36,3 +36,12 @@ enum class PlaybackErrorType { UNSUPPORTED_SOURCE, TORRENT_UNSUPPORTED, NETWORK,
  * instead of seeking.
  */
 enum class PlayerFocusZone { NONE, TOP_BAR, TRANSPORT, TIMELINE, ICON_ROW }
+
+/**
+ * Overlay panels shown on top of the controls. Modeled as a stack (see
+ * PlayerScreen's overlayStack) rather than a single nullable value, since
+ * Subtitles/Audio/Quality/SourceInfo can each be reached either directly
+ * from their own bottom-row icon (dismissing straight back to the plain
+ * controls) or via Settings (dismissing back to Settings instead).
+ */
+enum class PlayerOverlay { SUBTITLES, AUDIO, QUALITY, SETTINGS, SOURCE_INFO }
