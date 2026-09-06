@@ -335,12 +335,15 @@ private fun PlaybackContent(
                 // (its own list navigation/selection) — don't fight it with
                 // the player's own global seek/reveal shortcuts.
                 if (activeOverlay != null) return@onPreviewKeyEvent false
-                // Zone-gated: LEFT/RIGHT seeks only while nothing specific
-                // is focused yet or the timeline itself has focus; once
-                // focus is on an actual button, LEFT/RIGHT navigates
-                // between buttons instead (handled by normal Compose focus
-                // search, which this returns false for).
-                val seekEligible = focusZone == PlayerFocusZone.NONE || focusZone == PlayerFocusZone.TIMELINE
+                // LEFT/RIGHT only seeks while the timeline itself has focus
+                // — deliberately not a global shortcut, so it can't be
+                // triggered by accident with nothing focused. Rewind10/
+                // Forward10 remain reachable as explicit buttons (a click,
+                // not a D-pad direction), and once focus is on any other
+                // button, LEFT/RIGHT navigates between buttons instead
+                // (handled by normal Compose focus search, which this
+                // returns false for).
+                val seekEligible = focusZone == PlayerFocusZone.TIMELINE
                 when (event.key) {
                     Key.DirectionLeft, Key.DirectionRight -> {
                         if (!seekEligible) return@onPreviewKeyEvent false
