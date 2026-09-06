@@ -1,6 +1,7 @@
 package com.mangotv.app.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,6 +13,7 @@ import androidx.compose.foundation.relocation.bringIntoViewResponder
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.HomeSection
 import com.mangotv.app.ui.theme.MangoDimens
+import com.mangotv.app.ui.theme.MangoMotion
 import com.mangotv.app.ui.theme.TextPrimary
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -92,36 +95,44 @@ fun ContentRow(
                 vertical = if (compact) 6.dp else 12.dp
             )
         )
-        LazyRow(
-            modifier = if (onNavigateUpPastRow != null) {
-                Modifier.onPreviewKeyEvent { event ->
-                    // Consume both KeyDown and KeyUp for this key — an
-                    // unconsumed KeyUp can fall through to Compose's default
-                    // focus-move handling and trigger its own scroll-into-
-                    // view, independent of bringIntoViewOnFocus.
-                    if (event.key == Key.DirectionUp) {
-                        if (event.type == KeyEventType.KeyDown) {
-                            onNavigateUpPastRow()
+        // Home's outer LazyColumn provides a centering BringIntoViewSpec
+        // (see MangoMotion.FastCenteredBringIntoViewSpec) that would
+        // otherwise be inherited here too — horizontal card-to-card
+        // movement should keep the plain "scroll the minimum needed"
+        // positioning, just with the same fast animation, so it doesn't
+        // re-center on every single move.
+        CompositionLocalProvider(LocalBringIntoViewSpec provides MangoMotion.FastBringIntoViewSpec) {
+            LazyRow(
+                modifier = if (onNavigateUpPastRow != null) {
+                    Modifier.onPreviewKeyEvent { event ->
+                        // Consume both KeyDown and KeyUp for this key — an
+                        // unconsumed KeyUp can fall through to Compose's default
+                        // focus-move handling and trigger its own scroll-into-
+                        // view, independent of bringIntoViewOnFocus.
+                        if (event.key == Key.DirectionUp) {
+                            if (event.type == KeyEventType.KeyDown) {
+                                onNavigateUpPastRow()
+                            }
+                            true
+                        } else {
+                            false
                         }
-                        true
-                    } else {
-                        false
                     }
+                } else {
+                    Modifier
+                },
+                contentPadding = PaddingValues(horizontal = MangoDimens.ScreenPaddingHorizontal),
+                horizontalArrangement = Arrangement.spacedBy((if (compact) 12.dp else MangoDimens.CardSpacing) * posterScale)
+            ) {
+                items(section.items, key = { it.id }) { content ->
+                    ContentCard(
+                        content = content,
+                        style = section.style,
+                        onClick = { onItemClick(content) },
+                        compact = compact,
+                        posterScale = posterScale
+                    )
                 }
-            } else {
-                Modifier
-            },
-            contentPadding = PaddingValues(horizontal = MangoDimens.ScreenPaddingHorizontal),
-            horizontalArrangement = Arrangement.spacedBy((if (compact) 12.dp else MangoDimens.CardSpacing) * posterScale)
-        ) {
-            items(section.items, key = { it.id }) { content ->
-                ContentCard(
-                    content = content,
-                    style = section.style,
-                    onClick = { onItemClick(content) },
-                    compact = compact,
-                    posterScale = posterScale
-                )
             }
         }
     }

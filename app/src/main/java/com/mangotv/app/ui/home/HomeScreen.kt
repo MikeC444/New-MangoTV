@@ -1,9 +1,7 @@
 package com.mangotv.app.ui.home
 
-import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,23 +43,6 @@ import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoMotion
 import kotlinx.coroutines.launch
-
-// Compose's default focus-triggered "bring into view" scroll uses a
-// slower, spring-driven animation with no fixed short duration. D-pad
-// DOWN/UP auto-repeat fires a fresh focus move (and therefore a fresh
-// bring-into-view request) faster than that default can settle, and a new
-// request cancels/restarts the in-flight one from wherever it currently
-// sits rather than queuing -- so held-button scrolling was a chain of
-// aborted, restarted partial glides, reading as the whole page jerking.
-// Reusing MangoMotion.focusTween (150ms, the same token already driving
-// every card's focus scale/border animation) instead keeps this in step
-// with the rest of the focus-move motion already on screen. Only
-// scrollAnimationSpec is overridden -- calculateScrollDistance's default
-// positioning logic (WHERE to scroll to) is untouched.
-@OptIn(ExperimentalFoundationApi::class)
-private val HomeBringIntoViewSpec = object : BringIntoViewSpec {
-    override val scrollAnimationSpec: AnimationSpec<Float> = MangoMotion.focusTween
-}
 
 @Composable
 fun HomeScreen(
@@ -192,7 +173,7 @@ private fun HomeContent(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalBringIntoViewSpec provides HomeBringIntoViewSpec) {
+        CompositionLocalProvider(LocalBringIntoViewSpec provides MangoMotion.FastCenteredBringIntoViewSpec) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier
