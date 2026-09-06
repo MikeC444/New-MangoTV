@@ -22,7 +22,12 @@ fun AudioTrackMenu(
 
     MenuOverlayScaffold(title = "Audio", modifier = modifier) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            itemsIndexed(options, key = { _, option -> option.label + option.trackIndex }) { index, option ->
+            // Keyed on list position, not label+trackIndex: trackIndex only
+            // resets to 0 within its own track group, so two tracks in
+            // different groups with the same label (e.g. two "English —
+            // 5.1" renditions) previously produced a duplicate key and
+            // crashed the LazyColumn.
+            itemsIndexed(options, key = { index, _ -> index }) { index, option ->
                 MenuOptionRow(
                     label = option.label,
                     isSelected = option.isSelected,

@@ -22,7 +22,11 @@ fun QualityMenu(
 
     MenuOverlayScaffold(title = "Quality", modifier = modifier) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            itemsIndexed(options, key = { _, option -> option.label + (option.trackIndex ?: -1) }) { index, option ->
+            // Keyed on list position, not label+trackIndex: trackIndex only
+            // resets to 0 within its own track group, so two renditions in
+            // different groups with the same label previously produced a
+            // duplicate key and crashed the LazyColumn.
+            itemsIndexed(options, key = { index, _ -> index }) { index, option ->
                 MenuOptionRow(
                     label = option.label,
                     isSelected = option.isSelected,
