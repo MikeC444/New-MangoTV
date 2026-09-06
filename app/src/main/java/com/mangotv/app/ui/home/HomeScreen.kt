@@ -1,6 +1,8 @@
 package com.mangotv.app.ui.home
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -39,6 +42,7 @@ import com.mangotv.app.ui.components.HomeEmptyState
 import com.mangotv.app.ui.components.HomeLoadingSkeleton
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
+import com.mangotv.app.ui.theme.MangoMotion
 import kotlinx.coroutines.launch
 
 @Composable
@@ -92,6 +96,7 @@ private fun HomeEmptyScreen(onNavigate: (String) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HomeContent(
     state: HomeUiState.Success,
@@ -203,71 +208,79 @@ private fun HomeContent(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .nestedScroll(heroScrollLock)
-                .fillMaxSize()
-        ) {
-            item(key = "hero") {
-                HeroSection(
-                    items = state.heroItems,
-                    playFocusRequester = playFocusRequester,
-                    onPlay = { content ->
-                        content.providerId?.let { pid ->
-                            onNavigate(MangoRoutes.sources(pid, content.type, content.id))
-                        }
-                    },
-                    onAddToList = {},
-                    onMoreInfo = ::navigateToContent,
-                    navUpFocusRequester = homeNavFocusRequester,
-                    onNavigateUpPastHero = {
-                        // Imperative, not focusProperties-driven: pressing UP
-                        // from any hero button forces the list back to true
-                        // top and moves focus straight to the (always
-                        // composed, never-virtualized) nav bar, rather than
-                        // routing through a FocusRequester on a lazily
-                        // composed list item — see HeroSection for why that
-                        // approach crashed.
-                        heroRegionFocused = true
-                        coroutineScope.launch {
-                            listState.scrollToItem(0, 0)
-                            runCatching { homeNavFocusRequester.requestFocus() }
-                        }
-                    },
-                    onNavigateDownFromHero = {
-                        // Leaving the hero/nav region: let the watchdog
-                        // above stop pinning the list, since scrolling into
-                        // the first content row from here is desired.
-                        heroRegionFocused = false
-                    }
-                )
-            }
-            itemsIndexed(state.sections, key = { _, section -> section.id }) { index, section ->
-                ContentRow(
-                    section = section,
-                    onItemClick = ::navigateToContent,
-                    modifier = Modifier.padding(bottom = MangoDimens.RowSpacing),
-                    posterScale = 0.75f,
-                    onFocusChanged = { hasFocus -> if (hasFocus) focusedRowIndex = index },
-                    onNavigateUpPastRow = if (index == 0) {
-                        {
-                            // Hero buttons no longer auto-scroll into view
-                            // (see HeroSection) — returning to them from the
-                            // first content row needs to be explicit too.
+        // The outer list is scrolled exclusively by the explicit
+        // centering LaunchedEffect above now -- disabling Compose's own
+        // automatic bring-into-view here stops it from also reacting to a
+        // card's scale-on-focus rect shifting slightly during purely
+        // horizontal moves within a row (see DisabledBringIntoViewSpec's
+        // own doc for why that read as the whole page shaking).
+        CompositionLocalProvider(LocalBringIntoViewSpec provides MangoMotion.DisabledBringIntoViewSpec) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .nestedScroll(heroScrollLock)
+                    .fillMaxSize()
+            ) {
+                item(key = "hero") {
+                    HeroSection(
+                        items = state.heroItems,
+                        playFocusRequester = playFocusRequester,
+                        onPlay = { content ->
+                            content.providerId?.let { pid ->
+                                onNavigate(MangoRoutes.sources(pid, content.type, content.id))
+                            }
+                        },
+                        onAddToList = {},
+                        onMoreInfo = ::navigateToContent,
+                        navUpFocusRequester = homeNavFocusRequester,
+                        onNavigateUpPastHero = {
+                            // Imperative, not focusProperties-driven: pressing UP
+                            // from any hero button forces the list back to true
+                            // top and moves focus straight to the (always
+                            // composed, never-virtualized) nav bar, rather than
+                            // routing through a FocusRequester on a lazily
+                            // composed list item — see HeroSection for why that
+                            // approach crashed.
                             heroRegionFocused = true
                             coroutineScope.launch {
                                 listState.scrollToItem(0, 0)
-                                runCatching { playFocusRequester.requestFocus() }
+                                runCatching { homeNavFocusRequester.requestFocus() }
                             }
+                        },
+                        onNavigateDownFromHero = {
+                            // Leaving the hero/nav region: let the watchdog
+                            // above stop pinning the list, since scrolling into
+                            // the first content row from here is desired.
+                            heroRegionFocused = false
                         }
-                    } else {
-                        null
-                    }
-                )
-            }
-            item(key = "bottom_spacer") {
-                Spacer(Modifier.height(48.dp))
+                    )
+                }
+                itemsIndexed(state.sections, key = { _, section -> section.id }) { index, section ->
+                    ContentRow(
+                        section = section,
+                        onItemClick = ::navigateToContent,
+                        modifier = Modifier.padding(bottom = MangoDimens.RowSpacing),
+                        posterScale = 0.75f,
+                        onFocusChanged = { hasFocus -> if (hasFocus) focusedRowIndex = index },
+                        onNavigateUpPastRow = if (index == 0) {
+                            {
+                                // Hero buttons no longer auto-scroll into view
+                                // (see HeroSection) — returning to them from the
+                                // first content row needs to be explicit too.
+                                heroRegionFocused = true
+                                coroutineScope.launch {
+                                    listState.scrollToItem(0, 0)
+                                    runCatching { playFocusRequester.requestFocus() }
+                                }
+                            }
+                        } else {
+                            null
+                        }
+                    )
+                }
+                item(key = "bottom_spacer") {
+                    Spacer(Modifier.height(48.dp))
+                }
             }
         }
 
