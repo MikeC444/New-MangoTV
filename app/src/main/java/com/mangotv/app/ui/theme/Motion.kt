@@ -2,7 +2,7 @@ package com.mangotv.app.ui.theme
 
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.BringIntoViewSpec
@@ -44,18 +44,21 @@ object MangoMotion {
     // Compose-for-TV guide documents) keeps the last few rows from
     // over-scrolling into empty space below the end of the list.
     //
-    // Deliberately snap(), not a tween: centering means almost every
+    // Deliberately a spring, not a tween: centering means almost every
     // row-to-row move now triggers a scroll (unlike the old "only scroll
     // if not already visible" default, most moves were no-ops under
     // that), so a scroll fires on nearly every D-pad repeat instead of
-    // occasionally. Even the fast 150ms tween tried first collided with
-    // the next repeat often enough to reintroduce the exact stutter that
-    // fix was for — a new request still cancels/restarts whatever's
-    // mid-flight. snap() removes the failure mode outright: there's
-    // nothing running long enough to ever get interrupted.
+    // occasionally, and each new request cancels/restarts whatever's
+    // still mid-flight. A tween restarts its fixed ease-in-out curve from
+    // t=0 on every retarget, which under frequent retargeting looks like
+    // a series of hesitant start-stop micro-motions — a spring instead
+    // continuously eases toward whatever the current target is, so
+    // rapid retargeting reads as one fluid motion rather than a stutter.
+    // spring()'s own defaults (DampingRatioNoBouncy, StiffnessMedium) are
+    // exactly the "quick, no overshoot" feel wanted here.
     @OptIn(ExperimentalFoundationApi::class)
-    val SnapCenteredBringIntoViewSpec: BringIntoViewSpec = object : BringIntoViewSpec {
-        override val scrollAnimationSpec: AnimationSpec<Float> = snap()
+    val SmoothCenteredBringIntoViewSpec: BringIntoViewSpec = object : BringIntoViewSpec {
+        override val scrollAnimationSpec: AnimationSpec<Float> = spring()
 
         override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float {
             val centeredTarget = 0.5f * containerSize - 0.5f * size

@@ -96,11 +96,10 @@ fun ContentRow(
             )
         )
         // Home's outer LazyColumn provides a centering BringIntoViewSpec
-        // (see MangoMotion.SnapCenteredBringIntoViewSpec) that would
+        // (see MangoMotion.SmoothCenteredBringIntoViewSpec) that would
         // otherwise be inherited here too — horizontal card-to-card
         // movement should keep the plain "scroll the minimum needed"
-        // positioning with a real glide, not that spec's instant snap, so
-        // it neither re-centers nor loses its animation on every move.
+        // positioning instead, so it doesn't re-center on every move.
         CompositionLocalProvider(LocalBringIntoViewSpec provides MangoMotion.FastBringIntoViewSpec) {
             LazyRow(
                 modifier = if (onNavigateUpPastRow != null) {
