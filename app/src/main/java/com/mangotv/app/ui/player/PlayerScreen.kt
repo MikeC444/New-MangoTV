@@ -45,8 +45,10 @@ import com.mangotv.app.data.model.Episode
 import com.mangotv.app.data.model.PlayerPreferences
 import com.mangotv.app.data.model.Stream
 import com.mangotv.app.ui.components.FullScreenErrorState
+import com.mangotv.app.ui.player.overlay.AdvancedSettingsPanel
 import com.mangotv.app.ui.player.overlay.AudioTrackMenu
 import com.mangotv.app.ui.player.overlay.PlaybackErrorOverlay
+import com.mangotv.app.ui.player.overlay.PlaybackSpeedMenu
 import com.mangotv.app.ui.player.overlay.QualityMenu
 import com.mangotv.app.ui.player.overlay.SettingsPanel
 import com.mangotv.app.ui.player.overlay.SourceInfoPanel
@@ -206,6 +208,9 @@ private fun PlaybackContent(
     val showSubtitles = subtitleTracks.size > 1
     val showAudio = audioTracks.size > 1
     val showQuality = qualityOptions.count { it.trackGroup != null } > 1
+    val subtitleLabel = subtitleTracks.firstOrNull { it.isSelected }?.label ?: "Off"
+    val audioLabel = audioTracks.firstOrNull { it.isSelected }?.label ?: "Auto"
+    val qualityLabel = qualityOptions.firstOrNull { it.isSelected }?.label ?: "Auto"
 
     val rootFocusRequester = remember { FocusRequester() }
     val backFocusRequester = remember { FocusRequester() }
@@ -462,16 +467,27 @@ private fun PlaybackContent(
             )
             PlayerOverlay.SETTINGS -> SettingsPanel(
                 playbackSpeed = playbackSpeed,
-                onPlaybackSpeedChange = ::changePlaybackSpeed,
                 preferences = preferences,
                 onAutoplayChange = onAutoplayChange,
-                onSkipIntroChange = onSkipIntroChange,
                 showSubtitles = showSubtitles,
                 showAudio = showAudio,
                 showQuality = showQuality,
+                subtitleLabel = subtitleLabel,
+                audioLabel = audioLabel,
+                qualityLabel = qualityLabel,
                 onOpenSubtitles = { pushOverlay(PlayerOverlay.SUBTITLES) },
                 onOpenAudio = { pushOverlay(PlayerOverlay.AUDIO) },
                 onOpenQuality = { pushOverlay(PlayerOverlay.QUALITY) },
+                onOpenPlaybackSpeed = { pushOverlay(PlayerOverlay.PLAYBACK_SPEED) },
+                onOpenAdvanced = { pushOverlay(PlayerOverlay.ADVANCED) }
+            )
+            PlayerOverlay.PLAYBACK_SPEED -> PlaybackSpeedMenu(
+                playbackSpeed = playbackSpeed,
+                onSelect = { speed -> changePlaybackSpeed(speed); popOverlay() }
+            )
+            PlayerOverlay.ADVANCED -> AdvancedSettingsPanel(
+                skipIntroEnabled = preferences.skipIntroEnabled,
+                onSkipIntroChange = onSkipIntroChange,
                 onOpenSourceInfo = { pushOverlay(PlayerOverlay.SOURCE_INFO) },
                 onChangeSource = onChangeSource
             )
