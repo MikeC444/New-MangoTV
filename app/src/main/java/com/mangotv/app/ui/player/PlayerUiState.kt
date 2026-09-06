@@ -1,0 +1,29 @@
+package com.mangotv.app.ui.player
+
+import com.mangotv.app.data.model.Content
+import com.mangotv.app.data.model.Episode
+import com.mangotv.app.data.model.Stream
+
+/** Outer state: do we even have a resolved, playable stream yet. */
+sealed interface PlayerScreenUiState {
+    data object Loading : PlayerScreenUiState
+    data class Ready(val content: Content, val episode: Episode?, val stream: Stream) : PlayerScreenUiState
+    data class Error(val message: String) : PlayerScreenUiState
+}
+
+/**
+ * Inner state: the actual ExoPlayer engine's phase, derived from
+ * Player.Listener callbacks. Kept separate from [PlayerScreenUiState] so
+ * "we don't have a stream yet" and "we have a stream but it's buffering"
+ * are never conflated.
+ */
+sealed interface PlaybackPhase {
+    data object Loading : PlaybackPhase
+    data object Playing : PlaybackPhase
+    data object Paused : PlaybackPhase
+    data object Buffering : PlaybackPhase
+    data object Ended : PlaybackPhase
+    data class Error(val type: PlaybackErrorType, val message: String) : PlaybackPhase
+}
+
+enum class PlaybackErrorType { UNSUPPORTED_SOURCE, TORRENT_UNSUPPORTED, NETWORK, UNKNOWN }

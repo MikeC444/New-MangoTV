@@ -74,7 +74,14 @@ fun SourcesScreen(
             is SourcesUiState.Loaded -> SourcesContent(
                 state = state,
                 onBack = onBack,
-                onManageAddons = { onNavigate(MangoRoutes.SETTINGS_ADDONS) }
+                onManageAddons = { onNavigate(MangoRoutes.SETTINGS_ADDONS) },
+                onSelectSource = { stream ->
+                    state.content.providerId?.let { pid ->
+                        onNavigate(
+                            MangoRoutes.player(pid, state.content.type, state.content.id, state.season, state.episode, stream.id)
+                        )
+                    }
+                }
             )
         }
     }
@@ -84,7 +91,8 @@ fun SourcesScreen(
 private fun SourcesContent(
     state: SourcesUiState.Loaded,
     onBack: () -> Unit,
-    onManageAddons: () -> Unit
+    onManageAddons: () -> Unit,
+    onSelectSource: (Stream) -> Unit
 ) {
     var selectedFilter by remember { mutableStateOf(SourceFilter.ALL) }
     var selectedSort by remember { mutableStateOf(SourceSort.QUALITY) }
@@ -197,10 +205,7 @@ private fun SourcesContent(
                             SourceRow(
                                 stream = stream,
                                 isRecommended = stream.id == state.recommendedStreamId,
-                                // No player exists yet — selecting a source is a
-                                // stub for now, same as every other not-yet-built
-                                // action in this app (Watchlist, Mark as Watched).
-                                onClick = {},
+                                onClick = { onSelectSource(stream) },
                                 focusRequester = if (index == 0) firstSourceFocusRequester else null
                             )
                         }

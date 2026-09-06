@@ -7,6 +7,9 @@ import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.model.Stream
 import com.mangotv.app.data.provider.ProviderRegistry
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +21,9 @@ sealed interface SourcesUiState {
     data class Loaded(
         val content: Content,
         val streams: List<Stream>,
-        val recommendedStreamId: String?
+        val recommendedStreamId: String?,
+        val season: Int?,
+        val episode: Int?
     ) : SourcesUiState
     data class Error(val message: String) : SourcesUiState
 }
@@ -60,19 +65,22 @@ class SourcesViewModel(private val savedStateHandle: SavedStateHandle) : ViewMod
             // Different addons can each offer different quality options for
             // the same title, so every active provider is queried and
             // merged — unlike getDetails above, which only makes sense
-            // against the one addon that owns this content.
-            val streams = mutableListOf<Stream>()
-            for (provider in providers) {
-                runCatching { provider.getStreams(contentType, contentId, season, episode) }
-                    .onSuccess { streams += it }
-            }
+            // against the one addon that owns this content. Queried in
+            // parallel since the player screen now re-runs this same fetch
+            // a second time (it re-derives everything from route args
+            // rather than taking anything in-memory from this screen).
+            val streams = coroutineScope {
+                providers.map { provider ->
+                    async { runCatching { provider.getStreams(contentType, contentId, season, episode) }.getOrDefault(emptyList()) }
+                }.awaitAll()
+            }.flatten()
 
             val recommendedStreamId = streams
                 .sortedWith(compareBy<Stream> { it.resolutionTier.ordinal }.thenByDescending { it.seeders ?: -1 })
                 .firstOrNull()
                 ?.id
 
-            _uiState.value = SourcesUiState.Loaded(content, streams, recommendedStreamId)
+            _uiState.value = SourcesUiState.Loaded(content, streams, recommendedStreamId, season, episode)
         }
     }
 }

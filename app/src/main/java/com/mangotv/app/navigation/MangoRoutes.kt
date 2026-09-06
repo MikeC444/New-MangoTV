@@ -10,6 +10,7 @@ object MangoRoutes {
     const val SETTINGS_ADD_ADDON = "settings/addons/add"
     const val DETAIL_PATTERN = "detail/{providerId}/{type}/{id}"
     const val SOURCES_PATTERN = "sources/{providerId}/{type}/{id}/{season}/{episode}"
+    const val PLAYER_PATTERN = "player/{providerId}/{type}/{id}/{season}/{episode}/{streamId}"
 
     fun detail(providerId: String, type: ContentType, id: String): String {
         val encodedProviderId = URLEncoder.encode(providerId, "UTF-8")
@@ -21,6 +22,20 @@ object MangoRoutes {
         val encodedProviderId = URLEncoder.encode(providerId, "UTF-8")
         val encodedId = URLEncoder.encode(id, "UTF-8")
         return "sources/$encodedProviderId/${type.name}/$encodedId/${season ?: -1}/${episode ?: -1}"
+    }
+
+    fun player(
+        providerId: String,
+        type: ContentType,
+        id: String,
+        season: Int? = null,
+        episode: Int? = null,
+        streamId: String
+    ): String {
+        val encodedProviderId = URLEncoder.encode(providerId, "UTF-8")
+        val encodedId = URLEncoder.encode(id, "UTF-8")
+        val encodedStreamId = URLEncoder.encode(streamId, "UTF-8")
+        return "player/$encodedProviderId/${type.name}/$encodedId/${season ?: -1}/${episode ?: -1}/$encodedStreamId"
     }
 }
 
