@@ -27,3 +27,12 @@ sealed interface PlaybackPhase {
 }
 
 enum class PlaybackErrorType { UNSUPPORTED_SOURCE, TORRENT_UNSUPPORTED, NETWORK, UNKNOWN }
+
+/**
+ * Which cluster of the bottom control row currently holds D-pad focus.
+ * Drives the zone-gated LEFT/RIGHT behavior: seeking is only intercepted
+ * while [NONE] (nothing focused yet/controls hidden) or [TIMELINE] — once
+ * focus is on an actual button, LEFT/RIGHT navigates between buttons
+ * instead of seeking.
+ */
+enum class PlayerFocusZone { NONE, TOP_BAR, TRANSPORT, TIMELINE, ICON_ROW }

@@ -8,27 +8,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -38,10 +26,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.nativeKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -53,12 +42,9 @@ import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.Episode
 import com.mangotv.app.data.model.Stream
 import com.mangotv.app.ui.components.FullScreenErrorState
-import com.mangotv.app.ui.components.HeroIconButton
 import com.mangotv.app.ui.player.overlay.PlaybackErrorOverlay
 import com.mangotv.app.ui.theme.MangoAmber
-import com.mangotv.app.ui.theme.TextPrimary
-import com.mangotv.app.ui.theme.TextSecondary
-import androidx.media3.exoplayer.ExoPlayer
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 
 @Composable
@@ -101,13 +87,6 @@ fun PlayerScreen(
     }
 }
 
-/**
- * Phase 1's crude control set: play/pause, a flat 10s seek, a minimal top/
- * bottom bar, and a plain error card. Replaced by the full control layout
- * (PlayerTopBar/PlayerBottomControls/PlayerTimeline/QuickActionIndicator)
- * in the next phase — this exists so the player is genuinely usable end to
- * end before any of that polish lands.
- */
 @Composable
 private fun PlaybackContent(
     content: Content,
@@ -160,41 +139,130 @@ private fun PlaybackContent(
 
     LaunchedEffect(stream.id) { startPlayback() }
 
+    // -- Controls visibility, focus zone, and the interaction-resets-the-
+    // -- auto-hide-timer bookkeeping.
     var controlsVisible by remember { mutableStateOf(false) }
-    var seekIndicatorText by remember { mutableStateOf<String?>(null) }
-    val rootFocusRequester = remember { FocusRequester() }
-    val playPauseFocusRequester = remember { FocusRequester() }
+    var focusZone by remember { mutableStateOf(PlayerFocusZone.NONE) }
+    var interactionTick by remember { mutableIntStateOf(0) }
+    fun bumpInteraction() { interactionTick++ }
+    fun onFocusZoneChanged(zone: PlayerFocusZone) {
+        focusZone = zone
+        bumpInteraction()
+    }
 
-    // Drives focus in both directions, not just the auto-hide timer: when
-    // controls appear, focus must move onto the (now visible) play/pause
-    // button or it stays stuck on the invisible root anchor and the on-
-    // screen buttons become unreachable by D-pad; when controls hide again
-    // (and those buttons leave composition), focus must move back onto the
-    // root anchor so LEFT/RIGHT/SELECT keep being captured at all. Also
-    // covers requesting the very first focus on initial composition, since
-    // controlsVisible starts false.
+    val rootFocusRequester = remember { FocusRequester() }
+    val backFocusRequester = remember { FocusRequester() }
+    val playPauseFocusRequester = remember { FocusRequester() }
+    val rewindFocusRequester = remember { FocusRequester() }
+    val forwardFocusRequester = remember { FocusRequester() }
+    val subtitleFocusRequester = remember { FocusRequester() }
+    val audioFocusRequester = remember { FocusRequester() }
+    val qualityFocusRequester = remember { FocusRequester() }
+    val settingsFocusRequester = remember { FocusRequester() }
+    val nextEpisodeFocusRequester = remember { FocusRequester() }
+    val timelineFocusRequester = remember { FocusRequester() }
+
+    // Moves focus in both directions: onto play/pause when controls appear
+    // (or they'd stay stuck on the invisible root anchor and be visible but
+    // unreachable), and back onto the root anchor when controls hide again
+    // (their buttons leave composition, so focus would otherwise be lost
+    // entirely and stop receiving key events at all). Also covers the very
+    // first focus request on initial composition, since controlsVisible
+    // starts false.
     LaunchedEffect(controlsVisible) {
         if (controlsVisible) {
             runCatching { playPauseFocusRequester.requestFocus() }
-            delay(4000)
-            controlsVisible = false
         } else {
+            focusZone = PlayerFocusZone.NONE
             runCatching { rootFocusRequester.requestFocus() }
         }
     }
 
+    // Auto-hide after a few seconds of inactivity — re-armed by any bumped
+    // interaction (seeking, toggling play/pause, moving focus) so it never
+    // fires while the user is actively using the controls.
+    LaunchedEffect(controlsVisible, interactionTick) {
+        if (controlsVisible) {
+            delay(4000)
+            controlsVisible = false
+        }
+    }
+
+    var seekIndicatorText by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(seekIndicatorText) {
         if (seekIndicatorText != null) {
-            delay(800)
+            delay(900)
             seekIndicatorText = null
         }
     }
 
-    fun seek(deltaMs: Long) {
+    var playPauseFlashVisible by remember { mutableStateOf(false) }
+    var playPauseFlashIsPlaying by remember { mutableStateOf(false) }
+    LaunchedEffect(playPauseFlashVisible) {
+        if (playPauseFlashVisible) {
+            delay(700)
+            playPauseFlashVisible = false
+        }
+    }
+
+    fun togglePlayPause() {
+        val willPlay = phase !is PlaybackPhase.Playing
+        if (willPlay) exoPlayer.play() else exoPlayer.pause()
+        playPauseFlashIsPlaying = willPlay
+        playPauseFlashVisible = true
+        bumpInteraction()
+    }
+
+    fun seekPillText(deltaMs: Long): String {
+        val seconds = abs(deltaMs) / 1000
+        return if (deltaMs < 0) "«« $seconds seconds" else "$seconds seconds »»"
+    }
+
+    fun clampedSeekTarget(targetMs: Long): Long {
         val duration = exoPlayer.duration
-        val target = exoPlayer.currentPosition + deltaMs
-        exoPlayer.seekTo(if (duration > 0) target.coerceIn(0, duration) else target.coerceAtLeast(0))
-        seekIndicatorText = if (deltaMs < 0) "«« 10 seconds" else "10 seconds »»"
+        return if (duration > 0) targetMs.coerceIn(0, duration) else targetMs.coerceAtLeast(0)
+    }
+
+    // Explicit rewind/forward button clicks — a flat, immediate 10s seek,
+    // distinct from the accelerating hold gesture below (which is driven by
+    // held D-pad LEFT/RIGHT, not a click).
+    fun seekByClick(deltaMs: Long) {
+        exoPlayer.seekTo(clampedSeekTarget(exoPlayer.currentPosition + deltaMs))
+        seekIndicatorText = seekPillText(deltaMs)
+        bumpInteraction()
+    }
+
+    // Preview-then-commit-on-release hold-to-seek: KeyDown repeats only
+    // grow the pending delta and update the pill (no seekTo() per tick, to
+    // avoid stutter from repeated flush/rebuffer); KeyUp commits once. This
+    // also means a single tap (KeyDown then immediate KeyUp) still performs
+    // a normal flat 10s seek, since pendingSeekDeltaMs starts at ±10s.
+    var seekAnchorMs by remember { mutableStateOf<Long?>(null) }
+    var pendingSeekDeltaMs by remember { mutableStateOf(0L) }
+
+    fun beginOrContinueHoldSeek(direction: Int, isFreshPress: Boolean) {
+        if (isFreshPress || seekAnchorMs == null) {
+            seekAnchorMs = exoPlayer.currentPosition
+            pendingSeekDeltaMs = 10_000L * direction
+        } else {
+            val magnitude = abs(pendingSeekDeltaMs)
+            val step = when {
+                magnitude < 30_000L -> 10_000L
+                magnitude < 90_000L -> 30_000L
+                else -> 60_000L
+            }
+            val maxMagnitude = 120_000L
+            pendingSeekDeltaMs = (pendingSeekDeltaMs + step * direction).coerceIn(-maxMagnitude, maxMagnitude)
+        }
+        seekIndicatorText = seekPillText(pendingSeekDeltaMs)
+        bumpInteraction()
+    }
+
+    fun commitHoldSeek() {
+        val anchor = seekAnchorMs ?: return
+        exoPlayer.seekTo(clampedSeekTarget(anchor + pendingSeekDeltaMs))
+        seekAnchorMs = null
+        pendingSeekDeltaMs = 0L
     }
 
     Box(
@@ -203,12 +271,35 @@ private fun PlaybackContent(
             .focusRequester(rootFocusRequester)
             .focusable()
             .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                // Zone-gated: LEFT/RIGHT seeks only while nothing specific
+                // is focused yet or the timeline itself has focus; once
+                // focus is on an actual button, LEFT/RIGHT navigates
+                // between buttons instead (handled by normal Compose focus
+                // search, which this returns false for).
+                val seekEligible = focusZone == PlayerFocusZone.NONE || focusZone == PlayerFocusZone.TIMELINE
                 when (event.key) {
-                    Key.DirectionLeft -> { seek(-10_000); true }
-                    Key.DirectionRight -> { seek(10_000); true }
+                    Key.DirectionLeft, Key.DirectionRight -> {
+                        if (!seekEligible) return@onPreviewKeyEvent false
+                        val direction = if (event.key == Key.DirectionLeft) -1 else 1
+                        when (event.type) {
+                            KeyEventType.KeyDown -> {
+                                beginOrContinueHoldSeek(direction, isFreshPress = event.nativeKeyEvent.repeatCount == 0)
+                                true
+                            }
+                            KeyEventType.KeyUp -> {
+                                commitHoldSeek()
+                                true
+                            }
+                            else -> false
+                        }
+                    }
                     Key.DirectionCenter, Key.Enter -> {
-                        if (!controlsVisible) { controlsVisible = true; true } else false
+                        if (event.type == KeyEventType.KeyDown && !controlsVisible && focusZone == PlayerFocusZone.NONE) {
+                            controlsVisible = true
+                            true
+                        } else {
+                            false
+                        }
                     }
                     else -> false
                 }
@@ -233,14 +324,11 @@ private fun PlaybackContent(
         }
 
         seekIndicatorText?.let { text ->
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(percent = 50))
-                    .padding(horizontal = 22.dp, vertical = 12.dp)
-            ) {
-                Text(text = text, color = TextPrimary, style = MaterialTheme.typography.labelLarge)
-            }
+            SeekIndicatorPill(text = text, modifier = Modifier.align(Alignment.Center))
+        }
+
+        if (playPauseFlashVisible) {
+            PlayPauseIndicator(isPlaying = playPauseFlashIsPlaying, modifier = Modifier.align(Alignment.Center))
         }
 
         AnimatedVisibility(
@@ -249,37 +337,43 @@ private fun PlaybackContent(
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    HeroIconButton(icon = Icons.Filled.ArrowBack, contentDescription = "Back", onClick = onBack)
-                    Spacer(Modifier.width(16.dp))
-                    Column {
-                        Text(text = content.title, color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-                        val subtitle = episode?.let { "S${it.seasonNumber} E${it.episodeNumber} • ${it.title}" }
-                        if (subtitle != null) {
-                            Text(text = subtitle, color = TextSecondary, style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-                }
+            Box(modifier = Modifier.fillMaxSize()) {
+                PlayerControlsScrim(modifier = Modifier.fillMaxSize())
 
-                Spacer(Modifier.weight(1f))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val isPlaying = phase is PlaybackPhase.Playing
-                    HeroIconButton(
-                        icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
-                        onClick = { if (isPlaying) exoPlayer.pause() else exoPlayer.play() },
-                        focusRequester = playPauseFocusRequester
+                Column(modifier = Modifier.fillMaxSize()) {
+                    PlayerTopBar(
+                        content = content,
+                        episode = episode,
+                        onBack = onBack,
+                        backFocusRequester = backFocusRequester,
+                        backFocusDown = playPauseFocusRequester,
+                        onBackFocusChanged = { focused -> if (focused) onFocusZoneChanged(PlayerFocusZone.TOP_BAR) }
                     )
-                    Spacer(Modifier.width(16.dp))
-                    CrudeProgressLine(exoPlayer = exoPlayer, phase = phase, modifier = Modifier.weight(1f))
+
+                    Spacer(Modifier.weight(1f))
+
+                    PlayerBottomControls(
+                        exoPlayer = exoPlayer,
+                        phase = phase,
+                        showNextEpisode = episode != null,
+                        onPlayPause = ::togglePlayPause,
+                        onSeek = ::seekByClick,
+                        onSubtitles = {},
+                        onAudio = {},
+                        onQuality = {},
+                        onSettings = {},
+                        onNextEpisode = {},
+                        onFocusZoneChanged = ::onFocusZoneChanged,
+                        playPauseFocusRequester = playPauseFocusRequester,
+                        rewindFocusRequester = rewindFocusRequester,
+                        forwardFocusRequester = forwardFocusRequester,
+                        subtitleFocusRequester = subtitleFocusRequester,
+                        audioFocusRequester = audioFocusRequester,
+                        qualityFocusRequester = qualityFocusRequester,
+                        settingsFocusRequester = settingsFocusRequester,
+                        nextEpisodeFocusRequester = nextEpisodeFocusRequester,
+                        timelineFocusRequester = timelineFocusRequester
+                    )
                 }
             }
         }
@@ -287,63 +381,5 @@ private fun PlaybackContent(
 
     BackHandler {
         if (controlsVisible) controlsVisible = false else onBack()
-    }
-}
-
-/**
- * Position/duration text + a plain (non-focusable) fill bar. Polls locally
- * inside this leaf rather than through the shared PlaybackPhase state, so a
- * tick only recomposes this small row instead of the whole player screen.
- * Replaced by the real D-pad-focusable PlayerTimeline in the next phase.
- */
-@Composable
-private fun CrudeProgressLine(
-    exoPlayer: ExoPlayer,
-    phase: PlaybackPhase,
-    modifier: Modifier = Modifier
-) {
-    var positionMs by remember { mutableLongStateOf(0L) }
-    var durationMs by remember { mutableLongStateOf(0L) }
-
-    LaunchedEffect(phase) {
-        while (true) {
-            positionMs = exoPlayer.currentPosition.coerceAtLeast(0)
-            durationMs = exoPlayer.duration.coerceAtLeast(0)
-            delay(500)
-        }
-    }
-
-    val fraction = if (durationMs > 0) (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else 0f
-
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
-        Text(text = formatTimestamp(positionMs), color = TextSecondary, style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.width(10.dp))
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(4.dp)
-                .background(Color.White.copy(alpha = 0.25f), RoundedCornerShape(percent = 50))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(fraction)
-                    .height(4.dp)
-                    .background(MangoAmber, RoundedCornerShape(percent = 50))
-            )
-        }
-        Spacer(Modifier.width(10.dp))
-        Text(text = formatTimestamp(durationMs), color = TextSecondary, style = MaterialTheme.typography.labelMedium)
-    }
-}
-
-private fun formatTimestamp(ms: Long): String {
-    val totalSeconds = ms / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        "%d:%02d:%02d".format(hours, minutes, seconds)
-    } else {
-        "%d:%02d".format(minutes, seconds)
     }
 }

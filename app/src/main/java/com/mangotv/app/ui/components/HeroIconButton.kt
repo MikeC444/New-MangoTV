@@ -22,6 +22,10 @@ fun HeroIconButton(
     modifier: Modifier = Modifier,
     focusRequester: FocusRequester? = null,
     focusUp: FocusRequester? = null,
+    focusDown: FocusRequester? = null,
+    focusLeft: FocusRequester? = null,
+    focusRight: FocusRequester? = null,
+    onFocusChanged: (Boolean) -> Unit = {},
     compact: Boolean = false
 ) {
     TvFocusSurface(
@@ -31,6 +35,10 @@ fun HeroIconButton(
         backgroundColor = Color.White.copy(alpha = 0.12f),
         focusRequester = focusRequester,
         focusUp = focusUp,
+        focusDown = focusDown,
+        focusLeft = focusLeft,
+        focusRight = focusRight,
+        onFocusChanged = onFocusChanged,
         bringIntoViewOnFocus = false
     ) {
         Icon(
