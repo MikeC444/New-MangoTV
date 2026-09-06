@@ -34,10 +34,24 @@ class StremioAddonClient {
         json.decodeFromString(AddonManifest.serializer(), body)
     }
 
-    suspend fun fetchCatalog(manifestUrl: String, type: String, catalogId: String): List<StremioMetaPreview> =
+    // extra carries the Stremio protocol's per-catalog filter params (most
+    // commonly "genre") as a query-string-shaped, URL-encoded path segment:
+    // /catalog/movie/top/genre=Action.json. Left empty, the request is
+    // identical to the old unfiltered call.
+    suspend fun fetchCatalog(
+        manifestUrl: String,
+        type: String,
+        catalogId: String,
+        extra: Map<String, String> = emptyMap()
+    ): List<StremioMetaPreview> =
         withContext(Dispatchers.IO) {
             val base = AddonUrl.resourceBase(manifestUrl)
-            val url = "$base/catalog/$type/${encode(catalogId)}.json"
+            val extraSegment = if (extra.isEmpty()) {
+                ""
+            } else {
+                "/" + extra.entries.joinToString("&") { (key, value) -> "${encode(key)}=${encode(value)}" }
+            }
+            val url = "$base/catalog/$type/${encode(catalogId)}$extraSegment.json"
             val body = get(url)
             json.decodeFromString(StremioCatalogResponse.serializer(), body).metas
         }
@@ -64,7 +78,13 @@ class StremioAddonClient {
             json.decodeFromString(StremioMetaResponse.serializer(), body).meta
         }
 
-    private fun encode(segment: String): String = URLEncoder.encode(segment, "UTF-8")
+    // URLEncoder encodes spaces as "+" (form-encoding semantics), but every
+    // caller here uses this for literal path segments or extra-arg values
+    // (e.g. a "Science Fiction" genre) where a real "%20" is what's
+    // expected -- a bare "+" would round-trip back as a literal plus sign
+    // on servers that decode with decodeURIComponent rather than full
+    // querystring parsing.
+    private fun encode(segment: String): String = URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
 
     private fun get(url: String): String {
         val request = Request.Builder().url(url).build()

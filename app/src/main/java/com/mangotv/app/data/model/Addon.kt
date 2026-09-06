@@ -33,7 +33,23 @@ data class AddonManifest(
 data class AddonCatalogDef(
     val type: String,
     val id: String,
-    val name: String? = null
+    val name: String? = null,
+    val extra: List<AddonCatalogExtra> = emptyList()
+)
+
+/**
+ * Describes one filterable parameter a catalog supports (genre, skip,
+ * search, ...) per the Stremio addon protocol. Cinemeta and similar addons
+ * expose only a single base catalog per type and rely entirely on this —
+ * specifically a "genre" extra's [options] — to produce the many
+ * genre-specific lists (Action, Comedy, ...) real Stremio shows.
+ */
+@Serializable
+data class AddonCatalogExtra(
+    val name: String,
+    val isRequired: Boolean = false,
+    val options: List<String>? = null,
+    val optionsLimit: Int? = null
 )
 
 /**
