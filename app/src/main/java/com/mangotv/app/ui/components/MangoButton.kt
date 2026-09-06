@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.mangotv.app.ui.theme.FocusBorder
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoBrandGradient
 import com.mangotv.app.ui.theme.MangoDimens
@@ -39,7 +40,8 @@ fun MangoButton(
     // Used by the movie detail page to fit its whole layout on one screen
     // without scrolling — every other caller leaves this false, so their
     // buttons are completely unaffected.
-    compact: Boolean = false
+    compact: Boolean = false,
+    borderColor: Color = FocusBorder
 ) {
     val contentColor = when (style) {
         MangoButtonStyle.FILLED -> MangoBackground
@@ -75,6 +77,7 @@ fun MangoButton(
         focusRequester = focusRequester,
         focusUp = focusUp,
         focusDown = focusDown,
+        borderColor = borderColor,
         bringIntoViewOnFocus = bringIntoViewOnFocus
     ) {
         Row(

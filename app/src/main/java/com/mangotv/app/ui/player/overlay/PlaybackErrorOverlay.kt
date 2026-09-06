@@ -62,11 +62,29 @@ fun PlaybackErrorOverlay(
             )
             Spacer(Modifier.height(16.dp))
             Row {
-                MangoButton(text = "Try Again", icon = Icons.Filled.Refresh, onClick = onTryAgain, style = MangoButtonStyle.FILLED)
+                MangoButton(
+                    text = "Try Again",
+                    icon = Icons.Filled.Refresh,
+                    onClick = onTryAgain,
+                    style = MangoButtonStyle.GLASS,
+                    borderColor = Color.White
+                )
                 Spacer(Modifier.width(12.dp))
-                MangoButton(text = "Change Source", icon = Icons.Filled.SwapHoriz, onClick = onChangeSource, style = MangoButtonStyle.GLASS)
+                MangoButton(
+                    text = "Change Source",
+                    icon = Icons.Filled.SwapHoriz,
+                    onClick = onChangeSource,
+                    style = MangoButtonStyle.GLASS,
+                    borderColor = Color.White
+                )
                 Spacer(Modifier.width(12.dp))
-                MangoButton(text = "Back", icon = Icons.Filled.ArrowBack, onClick = onBack, style = MangoButtonStyle.GLASS)
+                MangoButton(
+                    text = "Back",
+                    icon = Icons.Filled.ArrowBack,
+                    onClick = onBack,
+                    style = MangoButtonStyle.GLASS,
+                    borderColor = Color.White
+                )
             }
         }
     }

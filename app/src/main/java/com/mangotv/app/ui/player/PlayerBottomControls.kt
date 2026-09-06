@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.media3.exoplayer.ExoPlayer
 import com.mangotv.app.ui.components.HeroIconButton
@@ -100,7 +101,8 @@ fun PlayerBottomControls(
             focusRequester = playPauseFocusRequester,
             focusDown = timelineFocusRequester,
             onFocusChanged = onTransportFocused,
-            showBackground = false
+            showBackground = false,
+            borderColor = Color.White
         )
         Spacer(Modifier.width(10.dp))
         HeroIconButton(
@@ -111,7 +113,8 @@ fun PlayerBottomControls(
             focusDown = timelineFocusRequester,
             onFocusChanged = onTransportFocused,
             compact = true,
-            showBackground = false
+            showBackground = false,
+            borderColor = Color.White
         )
         Spacer(Modifier.width(10.dp))
         HeroIconButton(
@@ -123,7 +126,8 @@ fun PlayerBottomControls(
             focusDown = timelineFocusRequester,
             onFocusChanged = onTransportFocused,
             compact = true,
-            showBackground = false
+            showBackground = false,
+            borderColor = Color.White
         )
 
         Spacer(Modifier.width(18.dp))
@@ -153,7 +157,8 @@ fun PlayerBottomControls(
                 focusDown = timelineFocusRequester,
                 onFocusChanged = onIconRowFocused,
                 compact = true,
-                showBackground = false
+                showBackground = false,
+                borderColor = Color.White
             )
             Spacer(Modifier.width(8.dp))
         }
@@ -167,7 +172,8 @@ fun PlayerBottomControls(
                 focusDown = timelineFocusRequester,
                 onFocusChanged = onIconRowFocused,
                 compact = true,
-                showBackground = false
+                showBackground = false,
+                borderColor = Color.White
             )
             Spacer(Modifier.width(8.dp))
         }
@@ -181,7 +187,8 @@ fun PlayerBottomControls(
                 focusDown = timelineFocusRequester,
                 onFocusChanged = onIconRowFocused,
                 compact = true,
-                showBackground = false
+                showBackground = false,
+                borderColor = Color.White
             )
             Spacer(Modifier.width(8.dp))
         }
@@ -194,7 +201,8 @@ fun PlayerBottomControls(
             focusDown = timelineFocusRequester,
             onFocusChanged = onIconRowFocused,
             compact = true,
-            showBackground = false
+            showBackground = false,
+            borderColor = Color.White
         )
         if (showNextEpisode) {
             Spacer(Modifier.width(8.dp))
@@ -206,7 +214,8 @@ fun PlayerBottomControls(
                 focusDown = timelineFocusRequester,
                 onFocusChanged = onIconRowFocused,
                 compact = true,
-                showBackground = false
+                showBackground = false,
+                borderColor = Color.White
             )
         }
     }

@@ -11,6 +11,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mangotv.app.data.model.PlayerPreferences
 import com.mangotv.app.ui.components.MangoButton
@@ -102,7 +103,8 @@ fun SettingsPanel(
             text = "Change Source",
             icon = Icons.Filled.SwapHoriz,
             onClick = onChangeSource,
-            style = MangoButtonStyle.GLASS
+            style = MangoButtonStyle.GLASS,
+            borderColor = Color.White
         )
     }
 }

@@ -51,7 +51,6 @@ import com.mangotv.app.ui.player.overlay.QualityMenu
 import com.mangotv.app.ui.player.overlay.SettingsPanel
 import com.mangotv.app.ui.player.overlay.SourceInfoPanel
 import com.mangotv.app.ui.player.overlay.SubtitlesMenu
-import com.mangotv.app.ui.theme.MangoAmber
 import kotlin.math.abs
 import kotlinx.coroutines.delay
 
@@ -78,7 +77,7 @@ fun PlayerScreen(
             is PlayerScreenUiState.Loading -> {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center).size(48.dp),
-                    color = MangoAmber
+                    color = Color.White
                 )
             }
             is PlayerScreenUiState.Error -> {
@@ -377,7 +376,7 @@ private fun PlaybackContent(
         if (phase is PlaybackPhase.Loading || phase is PlaybackPhase.Buffering) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center).size(48.dp),
-                color = MangoAmber
+                color = Color.White
             )
         }
 

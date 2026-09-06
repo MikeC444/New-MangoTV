@@ -9,6 +9,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.mangotv.app.ui.theme.FocusBorder
 import com.mangotv.app.ui.theme.TextPrimary
 
 /** Small circular icon button used next to a hero's pill-shaped Play button
@@ -30,7 +31,8 @@ fun HeroIconButton(
     // The video player wants bare icons with no resting fill (only the
     // TvFocusSurface focus border/scale on focus) — every other screen
     // keeps the translucent circle behind the icon as before.
-    showBackground: Boolean = true
+    showBackground: Boolean = true,
+    borderColor: Color = FocusBorder
 ) {
     TvFocusSurface(
         onClick = onClick,
@@ -43,6 +45,7 @@ fun HeroIconButton(
         focusLeft = focusLeft,
         focusRight = focusRight,
         onFocusChanged = onFocusChanged,
+        borderColor = borderColor,
         bringIntoViewOnFocus = false
     ) {
         Icon(

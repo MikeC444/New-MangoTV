@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.exoplayer.ExoPlayer
 import com.mangotv.app.ui.theme.MangoMotion
-import com.mangotv.app.ui.theme.ProgressFill
 import com.mangotv.app.ui.theme.ProgressTrack
 import kotlinx.coroutines.delay
 
@@ -104,13 +103,13 @@ fun PlayerTimeline(
             modifier = Modifier
                 .width(maxWidth * playedFraction)
                 .height(barHeight)
-                .background(ProgressFill, RoundedCornerShape(percent = 50))
+                .background(Color.White, RoundedCornerShape(percent = 50))
         )
         Box(
             modifier = Modifier
                 .offset(x = maxWidth * playedFraction - (thumbSize / 2))
                 .size(thumbSize)
-                .background(ProgressFill, CircleShape)
+                .background(Color.White, CircleShape)
         )
     }
 }

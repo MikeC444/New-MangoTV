@@ -25,7 +25,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mangotv.app.ui.components.TvFocusSurface
-import com.mangotv.app.ui.theme.MangoAmber
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoSurfaceHigh
@@ -79,8 +78,9 @@ fun MenuOptionRow(
     TvFocusSurface(
         onClick = onClick,
         shape = shape,
-        backgroundColor = if (isSelected) MangoAmber.copy(alpha = 0.16f) else MangoSurfaceHigh,
+        backgroundColor = if (isSelected) Color.White.copy(alpha = 0.16f) else MangoSurfaceHigh,
         focusRequester = focusRequester,
+        borderColor = Color.White,
         modifier = modifier.fillMaxWidth().padding(vertical = 3.dp)
     ) {
         Box(
@@ -90,7 +90,7 @@ fun MenuOptionRow(
             Column {
                 Text(
                     text = label,
-                    color = if (isSelected) MangoAmber else TextPrimary,
+                    color = if (isSelected) Color.White else TextPrimary,
                     style = MaterialTheme.typography.labelLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -109,7 +109,7 @@ fun MenuOptionRow(
                 Icon(
                     imageVector = Icons.Filled.Check,
                     contentDescription = null,
-                    tint = MangoAmber,
+                    tint = Color.White,
                     modifier = Modifier.align(Alignment.CenterEnd)
                 )
             }
