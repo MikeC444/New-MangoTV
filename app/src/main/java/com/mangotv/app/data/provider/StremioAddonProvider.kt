@@ -18,8 +18,14 @@ private val SUPPORTED_CATALOG_TYPES = setOf("movie", "series")
 // Addons like Cinemeta expose only one base catalog per type and rely on a
 // "genre" extra's declared options to produce the rest (Action, Comedy,
 // ...) -- without this cap a single catalog with a long genre list could
-// balloon Home into dozens of rows and requests.
-private const val MAX_GENRE_ROWS_PER_CATALOG = 10
+// balloon Home into dozens of rows and requests. Kept fairly low (not just
+// "not unbounded"): every never-before-scrolled-to row composes a burst of
+// poster loads the instant it enters view, and with Cinemeta's ~19 movie
+// genres alone a cap of 10 meant ~22 total rows for one addon -- enough to
+// make routine vertical scrolling visibly stutter as each new row's images
+// loaded in. 6 still gives far more variety than the single "Popular" row
+// this app had before genre fan-out existed at all.
+private const val MAX_GENRE_ROWS_PER_CATALOG = 6
 
 /**
  * A [CatalogProvider] backed by a real, user-installed Stremio-protocol

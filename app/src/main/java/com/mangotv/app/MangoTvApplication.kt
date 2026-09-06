@@ -3,6 +3,7 @@ package com.mangotv.app
 import android.app.Application
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import coil.disk.DiskCache
 import coil.memory.MemoryCache
 
 class MangoTvApplication : Application(), ImageLoaderFactory {
@@ -28,6 +29,19 @@ class MangoTvApplication : Application(), ImageLoaderFactory {
         .memoryCache {
             MemoryCache.Builder(this)
                 .maxSizePercent(0.35)
+                .build()
+        }
+        // A poster that scrolled out of the memory cache -- or wasn't seen
+        // in a previous session -- decodes from disk instead of a full
+        // network re-fetch on revisit. Bounded rather than a bare
+        // percentage of free space, since that can be tiny on an entry-
+        // level Fire TV Stick's storage or needlessly large on a Cube.
+        .diskCache {
+            DiskCache.Builder()
+                .directory(cacheDir.resolve("image_cache"))
+                .maxSizePercent(0.03)
+                .minimumMaxSizeBytes(50L * 1024 * 1024)
+                .maximumMaxSizeBytes(250L * 1024 * 1024)
                 .build()
         }
         .build()
