@@ -65,15 +65,19 @@ fun StremioMeta.toContent(providerId: String): Content {
     )
 }
 
-/** Groups a series meta's flat video list into per-season, episode-ordered [Season]s. */
+/**
+ * Groups a series meta's flat video list into per-season, episode-ordered
+ * [Season]s. Season 0 ("Specials") is dropped entirely — this app only
+ * shows proper numbered seasons.
+ */
 private fun List<StremioVideo>.toSeasons(): List<Season> =
-    filter { it.season != null && it.episode != null }
+    filter { it.season != null && it.season != 0 && it.episode != null }
         .groupBy { it.season!! }
         .toSortedMap()
         .map { (seasonNumber, videos) ->
             Season(
                 seasonNumber = seasonNumber,
-                name = if (seasonNumber == 0) "Specials" else "Season $seasonNumber",
+                name = "Season $seasonNumber",
                 episodes = videos.sortedBy { it.episode }.map { it.toEpisode() }
             )
         }
