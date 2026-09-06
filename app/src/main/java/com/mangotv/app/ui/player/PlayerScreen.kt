@@ -542,7 +542,18 @@ private fun PlaybackContent(
     BackHandler {
         when {
             timelineScrubbing -> timelineScrubbing = false
-            overlayStack.isNotEmpty() -> popOverlay()
+            overlayStack.isNotEmpty() -> {
+                popOverlay()
+                // Only once the whole stack is closed (not a single level of
+                // a nested menu, e.g. Advanced -> Settings) — landing back
+                // on a known, predictable button rather than wherever focus
+                // happens to end up once the overlay leaves composition.
+                // Settings/Playback Speed/Advanced back to each other
+                // re-focus their own first row on remount instead.
+                if (overlayStack.isEmpty()) {
+                    runCatching { playPauseFocusRequester.requestFocus() }
+                }
+            }
             controlsVisible -> controlsVisible = false
             else -> onBack()
         }
