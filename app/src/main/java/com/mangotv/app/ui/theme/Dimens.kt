@@ -21,6 +21,6 @@ object MangoDimens {
     val CardCornerRadius = 10.dp
     val ButtonCornerRadius = 8.dp
 
-    val RowSpacing = 28.dp
+    val RowSpacing = 16.dp
     val CardSpacing = 18.dp
 }
