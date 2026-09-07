@@ -10,6 +10,7 @@ import com.mangotv.app.ui.browse.TvShowsScreen
 import com.mangotv.app.ui.detail.DetailScreen
 import com.mangotv.app.ui.genres.GenreResultsScreen
 import com.mangotv.app.ui.genres.GenresScreen
+import com.mangotv.app.ui.search.SearchScreen
 import com.mangotv.app.ui.home.HomeScreen
 import com.mangotv.app.ui.player.PlayerScreen
 import com.mangotv.app.ui.settings.AddAddonScreen
@@ -58,6 +59,11 @@ fun MangoNavHost() {
         }
         composable(MangoRoutes.GENRE_RESULTS_PATTERN) {
             GenreResultsScreen(
+                onNavigate = { route -> navController.navigate(route) }
+            )
+        }
+        composable(MangoRoutes.SEARCH) {
+            SearchScreen(
                 onNavigate = { route -> navController.navigate(route) }
             )
         }
