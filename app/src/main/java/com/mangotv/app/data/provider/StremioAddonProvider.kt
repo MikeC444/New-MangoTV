@@ -49,14 +49,6 @@ class StremioAddonProvider(
 
     private val supportedCatalogs = manifest.catalogs.filter { it.type in SUPPORTED_CATALOG_TYPES }
 
-    override suspend fun getFeatured(): List<Content> {
-        val firstCatalog = supportedCatalogs.firstOrNull() ?: return emptyList()
-        return runCatching { client.fetchCatalog(manifestUrl, firstCatalog.type, firstCatalog.id) }
-            .getOrDefault(emptyList())
-            .take(3)
-            .map { it.toContent(providerId = id) }
-    }
-
     // Addons like Cinemeta declare a separate catalog per content type
     // (movie/top, series/top) that otherwise mirror each other -- same
     // genre options, same intent -- but nothing in the Stremio protocol

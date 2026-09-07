@@ -40,6 +40,7 @@ import com.mangotv.app.ui.components.ContentRow
 import com.mangotv.app.ui.components.FullScreenErrorState
 import com.mangotv.app.ui.components.HomeEmptyState
 import com.mangotv.app.ui.components.HomeLoadingSkeleton
+import com.mangotv.app.ui.detail.PendingDetailCache
 import com.mangotv.app.ui.theme.MangoBackground
 import com.mangotv.app.ui.theme.MangoDimens
 import com.mangotv.app.ui.theme.MangoMotion
@@ -214,6 +215,7 @@ private fun HomeContent(
 
     fun navigateToContent(target: Content) {
         val providerId = target.providerId ?: return
+        PendingDetailCache.stash(target)
         onNavigate(MangoRoutes.detail(providerId, target.type, target.id))
     }
 

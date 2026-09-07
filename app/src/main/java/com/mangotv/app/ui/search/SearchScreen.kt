@@ -51,6 +51,7 @@ import com.mangotv.app.ui.components.ContentRow
 import com.mangotv.app.ui.components.EmptyState
 import com.mangotv.app.ui.components.MangoButton
 import com.mangotv.app.ui.components.MangoButtonStyle
+import com.mangotv.app.ui.detail.PendingDetailCache
 import com.mangotv.app.ui.home.MangoNavItems
 import com.mangotv.app.ui.home.TopNavBar
 import com.mangotv.app.ui.theme.MangoAmber
@@ -92,6 +93,7 @@ fun SearchScreen(
 
     fun navigateToContent(target: Content) {
         val providerId = target.providerId ?: return
+        PendingDetailCache.stash(target)
         onNavigate(MangoRoutes.detail(providerId, target.type, target.id))
     }
 

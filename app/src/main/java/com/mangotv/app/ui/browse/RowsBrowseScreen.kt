@@ -50,6 +50,7 @@ import com.mangotv.app.ui.components.ContentCard
 import com.mangotv.app.ui.components.ContentRow
 import com.mangotv.app.ui.components.FullScreenErrorState
 import com.mangotv.app.ui.components.RowsLoadingSkeleton
+import com.mangotv.app.ui.detail.PendingDetailCache
 import com.mangotv.app.ui.home.MangoNavItems
 import com.mangotv.app.ui.home.TopNavBar
 import com.mangotv.app.ui.theme.MangoBackground
@@ -179,6 +180,7 @@ private fun RowsBrowseLoadedContent(
 
     fun navigateToContent(target: Content) {
         val providerId = target.providerId ?: return
+        PendingDetailCache.stash(target)
         onNavigate(MangoRoutes.detail(providerId, target.type, target.id))
     }
 
@@ -358,6 +360,7 @@ private fun RowsBrowseGridContent(
 
     fun navigateToContent(target: Content) {
         val providerId = target.providerId ?: return
+        PendingDetailCache.stash(target)
         onNavigate(MangoRoutes.detail(providerId, target.type, target.id))
     }
 

@@ -92,19 +92,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val sections = mutableListOf<HomeSection>()
         var anyProviderFailed = false
 
-        // Every provider's getFeatured() and getHomeSections() are launched
-        // together up front (both lists built before either is awaited), so
-        // all of it runs fully concurrently instead of provider-by-provider,
-        // featured-then-sections.
-        coroutineScope {
-            val heroDeferreds = providers.map { provider -> async { runCatching { provider.getFeatured() } } }
-            val sectionsDeferreds = providers.map { provider -> async { runCatching { provider.getHomeSections() } } }
-            heroDeferreds.awaitAll().forEach { result ->
-                result.onSuccess { hero += it }.onFailure { anyProviderFailed = true }
-            }
-            sectionsDeferreds.awaitAll().forEach { result ->
-                result.onSuccess { sections += it }.onFailure { anyProviderFailed = true }
-            }
+        // Every provider's getHomeSections() is launched together up front,
+        // so all of it runs fully concurrently. Hero items are derived from
+        // each provider's own base/popular row (always first, per
+        // buildSections' ordering) instead of a separate getFeatured() call
+        // -- that used to be a second, independent fetch against the exact
+        // same catalog endpoint on every single Home load.
+        val results = coroutineScope {
+            providers.map { provider -> async { runCatching { provider.getHomeSections() } } }.awaitAll()
+        }
+        results.forEach { result ->
+            result.onSuccess { providerSections ->
+                sections += providerSections
+                hero += providerSections.firstOrNull()?.items.orEmpty().take(3)
+            }.onFailure { anyProviderFailed = true }
         }
 
         rawHero = hero

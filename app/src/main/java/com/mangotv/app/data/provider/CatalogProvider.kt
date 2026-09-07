@@ -20,8 +20,6 @@ interface CatalogProvider {
 
     suspend fun getHomeSections(): List<HomeSection>
 
-    suspend fun getFeatured(): List<Content>
-
     /**
      * Full detail lookup for a single title (cast, director, extended
      * description) — richer than what a catalog listing's preview items

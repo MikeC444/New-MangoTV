@@ -1,6 +1,7 @@
 package com.mangotv.app.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -21,78 +22,101 @@ import com.mangotv.app.ui.settings.SettingsScreen
 import com.mangotv.app.ui.sources.SourcesScreen
 import java.net.URLDecoder
 
+// Static, argument-less top-level destinations reached from the top nav bar.
+// Navigating to one of these reuses/restores its existing back-stack entry
+// (and therefore its ViewModelStoreOwner) instead of always pushing a fresh
+// one -- without this, every tab switch tore down and rebuilt
+// HomeViewModel/MoviesViewModel/etc. from scratch, discarding all
+// already-fetched data and re-running every network fetch on every visit.
+private val TAB_ROOT_ROUTES = setOf(
+    MangoRoutes.HOME, MangoRoutes.MOVIES, MangoRoutes.TV_SHOWS,
+    MangoRoutes.GENRES, MangoRoutes.SEARCH, MangoRoutes.MY_LIST, MangoRoutes.SETTINGS
+)
+
 @Composable
 fun MangoNavHost() {
     val navController = rememberNavController()
 
+    fun navigateTo(route: String) {
+        if (route in TAB_ROOT_ROUTES) {
+            navController.navigate(route) {
+                launchSingleTop = true
+                restoreState = true
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            }
+        } else {
+            navController.navigate(route)
+        }
+    }
+
     NavHost(navController = navController, startDestination = MangoRoutes.HOME) {
         composable(MangoRoutes.HOME) {
             HomeScreen(
-                onNavigate = { route -> navController.navigate(route) }
+                onNavigate = ::navigateTo
             )
         }
         composable(MangoRoutes.SETTINGS) {
             SettingsScreen(
-                onNavigate = { route -> navController.navigate(route) },
+                onNavigate = ::navigateTo,
                 onOpenAddons = { navController.navigate(MangoRoutes.SETTINGS_ADDONS) },
                 onOpenHomeRows = { navController.navigate(MangoRoutes.SETTINGS_HOME_ROWS) }
             )
         }
         composable(MangoRoutes.SETTINGS_HOME_ROWS) {
             HomeRowsScreen(
-                onNavigate = { route -> navController.navigate(route) }
+                onNavigate = ::navigateTo
             )
         }
         composable(MangoRoutes.MOVIES) {
             MoviesScreen(
-                onNavigate = { route -> navController.navigate(route) }
+                onNavigate = ::navigateTo
             )
         }
         composable(MangoRoutes.TV_SHOWS) {
             TvShowsScreen(
-                onNavigate = { route -> navController.navigate(route) }
+                onNavigate = ::navigateTo
             )
         }
         composable(MangoRoutes.GENRES) {
             GenresScreen(
-                onNavigate = { route -> navController.navigate(route) }
+                onNavigate = ::navigateTo
             )
         }
         composable(MangoRoutes.GENRE_RESULTS_PATTERN) {
             GenreResultsScreen(
-                onNavigate = { route -> navController.navigate(route) }
+                onNavigate = ::navigateTo
             )
         }
         composable(MangoRoutes.SEARCH) {
             SearchScreen(
-                onNavigate = { route -> navController.navigate(route) }
+                onNavigate = ::navigateTo
             )
         }
         composable(MangoRoutes.MY_LIST) {
             MyListScreen(
-                onNavigate = { route -> navController.navigate(route) }
+                onNavigate = ::navigateTo
             )
         }
         composable(MangoRoutes.SETTINGS_ADDONS) {
             AddonsScreen(
-                onNavigate = { route -> navController.navigate(route) },
+                onNavigate = ::navigateTo,
                 onAddAddon = { navController.navigate(MangoRoutes.SETTINGS_ADD_ADDON) }
             )
         }
         composable(MangoRoutes.SETTINGS_ADD_ADDON) {
             AddAddonScreen(
-                onNavigate = { route -> navController.navigate(route) },
+                onNavigate = ::navigateTo,
                 onInstalled = { navController.popBackStack() }
             )
         }
         composable(MangoRoutes.DETAIL_PATTERN) {
             DetailScreen(
-                onNavigate = { route -> navController.navigate(route) }
+                onNavigate = ::navigateTo
             )
         }
         composable(MangoRoutes.SOURCES_PATTERN) {
             SourcesScreen(
-                onNavigate = { route -> navController.navigate(route) },
+                onNavigate = ::navigateTo,
                 onBack = { navController.popBackStack() }
             )
         }

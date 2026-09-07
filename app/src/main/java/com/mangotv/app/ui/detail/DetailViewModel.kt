@@ -39,7 +39,16 @@ class DetailViewModel(application: Application, private val savedStateHandle: Sa
     private val contentId: String =
         URLDecoder.decode(savedStateHandle.get<String>("id").orEmpty(), "UTF-8")
 
-    private val _uiState = MutableStateFlow<DetailUiState>(DetailUiState.Loading)
+    // Seeded from whatever preview Content the previous screen already had
+    // (see PendingDetailCache) so the backdrop/title/poster can render
+    // immediately instead of waiting on the full getDetails() round trip --
+    // load() below still runs and overwrites this with real data (or an
+    // Error) once it resolves, so a missing/stale entry (e.g. a deep link)
+    // just falls back to today's Loading-first behavior.
+    private val _uiState = MutableStateFlow<DetailUiState>(
+        PendingDetailCache.consume(contentId)?.let { DetailUiState.Success(it, similar = emptyList()) }
+            ?: DetailUiState.Loading
+    )
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
     val isInMyList: StateFlow<Boolean> = myListRepository.items

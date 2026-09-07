@@ -141,6 +141,7 @@ private fun DetailContent(
 
     fun navigateToContent(target: Content) {
         val providerId = target.providerId ?: return
+        PendingDetailCache.stash(target)
         onNavigate(MangoRoutes.detail(providerId, target.type, target.id))
     }
 
