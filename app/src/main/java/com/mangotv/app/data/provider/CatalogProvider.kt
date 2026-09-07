@@ -37,4 +37,29 @@ interface CatalogProvider {
      * [getDetails] (which only makes sense against the one owning provider).
      */
     suspend fun getStreams(type: ContentType, id: String, season: Int? = null, episode: Int? = null): List<Stream>
+
+    /**
+     * The same base+genre row set [getHomeSections] builds, restricted to
+     * one content type — backs the dedicated Movies/TV Shows browse screens.
+     */
+    suspend fun getSectionsByType(type: ContentType): List<HomeSection>
+
+    /** Every genre name this provider's catalogs declare, deduplicated. Backs the Genres picker screen. */
+    suspend fun getAvailableGenres(): List<String>
+
+    /**
+     * One merged catalogue for a single genre, mixing every content type
+     * that declares it (same merge behavior [getHomeSections]'s own genre
+     * rows already use). Null if this provider has nothing for that genre.
+     */
+    suspend fun getGenreSection(genre: String): HomeSection?
+
+    /**
+     * Searches this provider for [query]. Implementations should prefer a
+     * real server-side search where the addon supports one, falling back to
+     * client-side matching over already-fetchable catalogs otherwise, so
+     * Search still returns something for addons that don't declare search
+     * support.
+     */
+    suspend fun search(query: String): List<Content>
 }

@@ -58,11 +58,84 @@ class StremioAddonProvider(
     // one combined row) is what actually merges movies and TV shows into a
     // single row per genre. All fetches (base + every genre) run in
     // parallel so the genre fan-out doesn't multiply Home's real load time.
-    override suspend fun getHomeSections(): List<HomeSection> = coroutineScope {
+    override suspend fun getHomeSections(): List<HomeSection> = buildSections(supportedCatalogs, rowKeyPrefix = "")
+
+    // Same base+genre fan-out as getHomeSections(), restricted to one
+    // content type -- backs the dedicated Movies/TV Shows browse screens.
+    // rowKeyPrefix keeps these rows' ids distinct from getHomeSections()'s
+    // own (which HomeRowPreferences persists hidden/order state against),
+    // so browsing Movies/TV Shows can never collide with or disturb a
+    // user's saved Home Rows settings.
+    override suspend fun getSectionsByType(type: ContentType): List<HomeSection> {
+        val stremioType = if (type == ContentType.TV_SHOW) "series" else "movie"
+        return buildSections(supportedCatalogs.filter { it.type == stremioType }, rowKeyPrefix = "${stremioType}_")
+    }
+
+    override suspend fun getAvailableGenres(): List<String> = declaredGenres(supportedCatalogs)
+
+    override suspend fun getGenreSection(genre: String): HomeSection? {
+        val catalogsForGenre = supportedCatalogs.filter { catalogDef ->
+            genre in catalogDef.extra.firstOrNull { extra -> extra.name == "genre" }?.options.orEmpty()
+        }
+        return fetchMergedSection(catalogsForGenre, title = genre, extra = mapOf("genre" to genre), rowKey = "genre_$genre")
+    }
+
+    // Hybrid: real server-side search for any catalog that declares a
+    // "search" extra (interleaved+deduped across them same as any other
+    // merged row), falling back to a client-side title match over the base
+    // catalogs when no catalog supports search or the search itself comes
+    // back empty -- so Search still returns something for an addon like
+    // Cinemeta that may not declare search support at all.
+    override suspend fun search(query: String): List<Content> = coroutineScope {
+        if (query.isBlank()) return@coroutineScope emptyList()
+
+        val searchableCatalogs = supportedCatalogs.filter { catalogDef ->
+            catalogDef.extra.any { it.name == "search" }
+        }
+        if (searchableCatalogs.isNotEmpty()) {
+            val perCatalog = searchableCatalogs.map { catalogDef ->
+                async {
+                    runCatching { client.fetchCatalog(manifestUrl, catalogDef.type, catalogDef.id, mapOf("search" to query)) }
+                        .getOrNull()
+                        ?.map { it.toContent(providerId = id) }
+                        .orEmpty()
+                }
+            }.awaitAll()
+            val serverResults = interleave(perCatalog).distinctBy { it.id }
+            if (serverResults.isNotEmpty()) return@coroutineScope serverResults
+        }
+
+        val baseCatalogs = supportedCatalogs.filter { catalogDef ->
+            catalogDef.extra.firstOrNull { it.name == "genre" }?.isRequired != true
+        }
+        val perBaseCatalog = baseCatalogs.map { catalogDef ->
+            async {
+                runCatching { client.fetchCatalog(manifestUrl, catalogDef.type, catalogDef.id) }
+                    .getOrNull()
+                    ?.map { it.toContent(providerId = id) }
+                    .orEmpty()
+            }
+        }.awaitAll()
+        interleave(perBaseCatalog).distinctBy { it.id }.filter { it.title.contains(query, ignoreCase = true) }
+    }
+
+    // Union of every genre any supported catalog declares, capped as a
+    // safety ceiling (see MAX_GENRE_ROWS) rather than a curation mechanism
+    // now that Settings > Home Rows lets users hide rows they don't want.
+    private fun declaredGenres(catalogs: List<AddonCatalogDef>): List<String> =
+        catalogs.flatMap { it.extra.firstOrNull { extra -> extra.name == "genre" }?.options.orEmpty() }
+            .distinct()
+            .take(MAX_GENRE_ROWS)
+
+    // One row per catalog family, PLUS one additional row per genre the
+    // family declares. rowKeyPrefix lets callers (getHomeSections vs.
+    // getSectionsByType) share this exact fan-out logic while still
+    // producing distinct row ids from each other.
+    private suspend fun buildSections(catalogs: List<AddonCatalogDef>, rowKeyPrefix: String): List<HomeSection> = coroutineScope {
         // Base ("no genre filter") row: every catalog that can answer an
         // unfiltered request (its genre extra, if any, isn't required)
         // merges into one row, regardless of type.
-        val baseCatalogs = supportedCatalogs.filter { catalogDef ->
+        val baseCatalogs = catalogs.filter { catalogDef ->
             catalogDef.extra.firstOrNull { it.name == "genre" }?.isRequired != true
         }
         val baseRowDeferred = if (baseCatalogs.isNotEmpty()) {
@@ -72,23 +145,18 @@ class StremioAddonProvider(
             // match DEFAULT_ROW_PRIORITY's "popular"/"featured" entries and
             // sort to the top instead of getting lost among 30 genre rows.
             val title = baseCatalogs.firstNotNullOfOrNull { it.name } ?: manifest.name
-            listOf(async { fetchMergedSection(baseCatalogs, title = title, extra = emptyMap(), rowKey = "base") })
+            listOf(async { fetchMergedSection(baseCatalogs, title = title, extra = emptyMap(), rowKey = "${rowKeyPrefix}base") })
         } else {
             emptyList()
         }
 
-        // Genre rows: the union of every genre any supported catalog
+        // Genre rows: the union of every genre any of these catalogs
         // declares, each merging every catalog (any type) that lists it.
-        val genres = supportedCatalogs
-            .flatMap { it.extra.firstOrNull { extra -> extra.name == "genre" }?.options.orEmpty() }
-            .distinct()
-            .take(MAX_GENRE_ROWS)
-
-        val genreRowDeferreds = genres.map { genre ->
-            val catalogsForGenre = supportedCatalogs.filter { catalogDef ->
+        val genreRowDeferreds = declaredGenres(catalogs).map { genre ->
+            val catalogsForGenre = catalogs.filter { catalogDef ->
                 genre in catalogDef.extra.firstOrNull { extra -> extra.name == "genre" }?.options.orEmpty()
             }
-            async { fetchMergedSection(catalogsForGenre, title = genre, extra = mapOf("genre" to genre), rowKey = genre) }
+            async { fetchMergedSection(catalogsForGenre, title = genre, extra = mapOf("genre" to genre), rowKey = "$rowKeyPrefix$genre") }
         }
 
         (baseRowDeferred + genreRowDeferreds).awaitAll().filterNotNull()
