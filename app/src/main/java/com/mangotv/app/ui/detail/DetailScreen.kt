@@ -66,11 +66,16 @@ fun DetailScreen(
                 message = state.message,
                 onRetry = viewModel::load
             )
-            is DetailUiState.Success -> DetailContent(
-                content = state.content,
-                similar = state.similar,
-                onNavigate = onNavigate
-            )
+            is DetailUiState.Success -> {
+                val isInMyList by viewModel.isInMyList.collectAsStateWithLifecycle()
+                DetailContent(
+                    content = state.content,
+                    similar = state.similar,
+                    onNavigate = onNavigate,
+                    isInMyList = isInMyList,
+                    onToggleMyList = viewModel::toggleMyList
+                )
+            }
         }
     }
 }
@@ -80,6 +85,8 @@ private fun DetailContent(
     content: Content,
     similar: List<Content>,
     onNavigate: (String) -> Unit,
+    isInMyList: Boolean,
+    onToggleMyList: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -190,7 +197,8 @@ private fun DetailContent(
                         }
                     },
                     onWatched = {},
-                    onWatchlist = {},
+                    onWatchlist = onToggleMyList,
+                    isInMyList = isInMyList,
                     onMore = {},
                     navUpFocusRequester = navFocusRequester,
                     onNavigateUpPastHero = { returnToHero() },

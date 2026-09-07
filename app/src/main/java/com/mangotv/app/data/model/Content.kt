@@ -1,11 +1,17 @@
 package com.mangotv.app.data.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * Centralized content metadata model. Every screen in the app reads from
  * this shape regardless of which provider/addon originally supplied it —
  * the UI never has provider-specific knowledge.
  */
 
+// Serializable so My List's persisted SavedListItem can store it directly --
+// the rest of Content isn't (its full graph would need annotating too), so
+// My List keeps its own lightweight DTO rather than persisting Content itself.
+@Serializable
 enum class ContentType {
     MOVIE,
     TV_SHOW

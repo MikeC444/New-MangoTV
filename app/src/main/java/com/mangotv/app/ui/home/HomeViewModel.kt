@@ -10,9 +10,12 @@ import com.mangotv.app.data.provider.CatalogProvider
 import com.mangotv.app.data.provider.HomeRowPreferences
 import com.mangotv.app.data.provider.ProviderRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed interface HomeUiState {
@@ -28,9 +31,18 @@ sealed interface HomeUiState {
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val homeRowPreferences = (application as MangoTvApplication).container.homeRowPreferencesRepository
+    private val myListRepository = (application as MangoTvApplication).container.myListRepository
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    val savedIds: StateFlow<Set<String>> = myListRepository.items
+        .map { items -> items.map { it.id }.toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    fun toggleMyList(content: Content) {
+        viewModelScope.launch { myListRepository.toggle(content) }
+    }
 
     init {
         // Re-collects (and reloads) automatically whenever an addon is

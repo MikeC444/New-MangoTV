@@ -65,7 +65,15 @@ fun HomeScreen(
                 onRetry = viewModel::load
             )
             is HomeUiState.Empty -> HomeEmptyScreen(onNavigate = onNavigate)
-            is HomeUiState.Success -> HomeContent(state = state, onNavigate = onNavigate)
+            is HomeUiState.Success -> {
+                val savedIds by viewModel.savedIds.collectAsStateWithLifecycle()
+                HomeContent(
+                    state = state,
+                    onNavigate = onNavigate,
+                    savedIds = savedIds,
+                    onToggleMyList = viewModel::toggleMyList
+                )
+            }
         }
     }
 }
@@ -101,6 +109,8 @@ private fun HomeEmptyScreen(onNavigate: (String) -> Unit) {
 private fun HomeContent(
     state: HomeUiState.Success,
     onNavigate: (String) -> Unit,
+    savedIds: Set<String>,
+    onToggleMyList: (Content) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -230,7 +240,8 @@ private fun HomeContent(
                                 onNavigate(MangoRoutes.sources(pid, content.type, content.id))
                             }
                         },
-                        onAddToList = {},
+                        savedIds = savedIds,
+                        onAddToList = onToggleMyList,
                         onMoreInfo = ::navigateToContent,
                         navUpFocusRequester = homeNavFocusRequester,
                         onNavigateUpPastHero = {

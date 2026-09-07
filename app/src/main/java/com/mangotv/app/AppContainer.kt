@@ -4,6 +4,7 @@ import android.content.Context
 import com.mangotv.app.data.addon.AddonRepository
 import com.mangotv.app.data.player.PlayerPreferencesRepository
 import com.mangotv.app.data.provider.HomeRowPreferencesRepository
+import com.mangotv.app.data.provider.MyListRepository
 
 /**
  * A small hand-rolled container instead of a DI framework: this app only has
@@ -28,9 +29,13 @@ import com.mangotv.app.data.provider.HomeRowPreferencesRepository
  * — only Home and its Settings > Home Rows screen ever touch it, so it's
  * constructed lazily the first time either is visited rather than eagerly
  * at app startup.
+ *
+ * myListRepository is the same story again — only Home's hero, Detail's
+ * hero, and the My List screen ever touch it.
  */
 class AppContainer(context: Context) {
     val addonRepository: AddonRepository = AddonRepository(context)
     val playerPreferencesRepository: PlayerPreferencesRepository by lazy { PlayerPreferencesRepository(context) }
     val homeRowPreferencesRepository: HomeRowPreferencesRepository by lazy { HomeRowPreferencesRepository(context) }
+    val myListRepository: MyListRepository by lazy { MyListRepository(context) }
 }

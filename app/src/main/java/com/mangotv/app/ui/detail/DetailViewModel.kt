@@ -1,15 +1,20 @@
 package com.mangotv.app.ui.detail
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mangotv.app.MangoTvApplication
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.provider.CatalogProvider
 import com.mangotv.app.data.provider.ProviderRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
 
@@ -19,7 +24,9 @@ sealed interface DetailUiState {
     data class Error(val message: String) : DetailUiState
 }
 
-class DetailViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel() {
+class DetailViewModel(application: Application, private val savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
+
+    private val myListRepository = (application as MangoTvApplication).container.myListRepository
 
     private val providerId: String =
         URLDecoder.decode(savedStateHandle.get<String>("providerId").orEmpty(), "UTF-8")
@@ -34,6 +41,15 @@ class DetailViewModel(private val savedStateHandle: SavedStateHandle) : ViewMode
 
     private val _uiState = MutableStateFlow<DetailUiState>(DetailUiState.Loading)
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
+
+    val isInMyList: StateFlow<Boolean> = myListRepository.items
+        .map { items -> items.any { it.id == contentId } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun toggleMyList() {
+        val content = (uiState.value as? DetailUiState.Success)?.content ?: return
+        viewModelScope.launch { myListRepository.toggle(content) }
+    }
 
     init {
         load()

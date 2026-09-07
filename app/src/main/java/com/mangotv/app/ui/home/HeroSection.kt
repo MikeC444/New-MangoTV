@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.MaterialTheme
@@ -82,7 +83,8 @@ fun HeroSection(
     modifier: Modifier = Modifier,
     navUpFocusRequester: FocusRequester? = null,
     onNavigateUpPastHero: () -> Unit = {},
-    onNavigateDownFromHero: () -> Unit = {}
+    onNavigateDownFromHero: () -> Unit = {},
+    savedIds: Set<String> = emptySet()
 ) {
     if (items.isEmpty()) return
 
@@ -313,9 +315,10 @@ fun HeroSection(
                     bringIntoViewOnFocus = false
                 )
                 Spacer(Modifier.width(16.dp))
+                val isSaved = current.id in savedIds
                 HeroIconButton(
-                    icon = Icons.Filled.Add,
-                    contentDescription = "Add to My List",
+                    icon = if (isSaved) Icons.Filled.Check else Icons.Filled.Add,
+                    contentDescription = if (isSaved) "Remove from My List" else "Add to My List",
                     onClick = { onAddToList(current) },
                     focusUp = navUpFocusRequester
                 )

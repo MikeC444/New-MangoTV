@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
@@ -93,6 +94,7 @@ fun DetailHeroSection(
     navUpFocusRequester: FocusRequester? = null,
     onNavigateUpPastHero: () -> Unit = {},
     onNavigateDownFromHero: () -> Unit = {},
+    isInMyList: Boolean = false,
     // Movie detail only, for now: shrinks everything except the title so
     // the whole page (hero + Cast + You May Also Like) fits on one screen
     // without scrolling. TV shows don't pass this and are unaffected.
@@ -346,8 +348,8 @@ fun DetailHeroSection(
                         )
                         Spacer(Modifier.width(if (compact) 10.dp else 16.dp))
                         HeroIconButton(
-                            icon = Icons.Filled.Add,
-                            contentDescription = "Add to Watchlist",
+                            icon = if (isInMyList) Icons.Filled.Check else Icons.Filled.Add,
+                            contentDescription = if (isInMyList) "Remove from Watchlist" else "Add to Watchlist",
                             onClick = onWatchlist,
                             focusUp = navUpFocusRequester,
                             compact = compact
