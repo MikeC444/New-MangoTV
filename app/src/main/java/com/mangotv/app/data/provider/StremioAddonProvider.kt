@@ -17,15 +17,12 @@ private val SUPPORTED_CATALOG_TYPES = setOf("movie", "series")
 
 // Addons like Cinemeta expose only one base catalog per type and rely on a
 // "genre" extra's declared options to produce the rest (Action, Comedy,
-// ...) -- without this cap a single catalog with a long genre list could
-// balloon Home into dozens of rows and requests. Kept fairly low (not just
-// "not unbounded"): every never-before-scrolled-to row composes a burst of
-// poster loads the instant it enters view, and with Cinemeta's ~19 movie
-// genres alone a cap of 10 meant ~22 total rows for one addon -- enough to
-// make routine vertical scrolling visibly stutter as each new row's images
-// loaded in. 6 still gives far more variety than the single "Popular" row
-// this app had before genre fan-out existed at all.
-private const val MAX_GENRE_ROWS_PER_FAMILY = 6
+// ...). Now that Settings > Home Rows lets users hide rows they don't want,
+// this only needs to be a safety ceiling against a pathological addon
+// declaring hundreds of genres, not a curation mechanism -- capping low used
+// to mean most of an addon's real genres were simply never fetchable at all,
+// which is why they didn't show up as options anywhere.
+private const val MAX_GENRE_ROWS = 30
 
 /**
  * A [CatalogProvider] backed by a real, user-installed Stremio-protocol
@@ -44,17 +41,6 @@ class StremioAddonProvider(
 
     private val supportedCatalogs = manifest.catalogs.filter { it.type in SUPPORTED_CATALOG_TYPES }
 
-    // Addons like Cinemeta declare a separate catalog per content type
-    // (movie/top, series/top) that otherwise mirror each other exactly --
-    // same catalog id, same genre options. Grouping by catalog id merges
-    // those into one family so "Action" becomes a single row containing
-    // both movies and TV shows instead of two near-identical rows, one per
-    // type. An addon with genuinely distinct catalogs sharing a type (e.g.
-    // separate "popular" and "new" movie catalogs) still gets its own
-    // family per id, so unrelated catalogs never get merged together.
-    private val catalogFamilies: List<List<AddonCatalogDef>> =
-        supportedCatalogs.groupBy { it.id }.values.toList()
-
     override suspend fun getFeatured(): List<Content> {
         val firstCatalog = supportedCatalogs.firstOrNull() ?: return emptyList()
         return runCatching { client.fetchCatalog(manifestUrl, firstCatalog.type, firstCatalog.id) }
@@ -63,54 +49,55 @@ class StremioAddonProvider(
             .map { it.toContent(providerId = id) }
     }
 
-    // One row per catalog family, PLUS one additional row per genre the
-    // family declares (via its members' "genre" extra options) -- this is
-    // how addons like Cinemeta, which only expose a single base "top"
-    // catalog per type, actually produce Action/Comedy/Horror/etc. variety.
-    // All fetches (base + every genre, across every family) run in
+    // Addons like Cinemeta declare a separate catalog per content type
+    // (movie/top, series/top) that otherwise mirror each other -- same
+    // genre options, same intent -- but nothing in the Stremio protocol
+    // guarantees they share a literal catalog id, so matching catalogs
+    // across types by GENRE NAME (rather than by id, which silently failed
+    // to merge anything and produced one "Action" row per type instead of
+    // one combined row) is what actually merges movies and TV shows into a
+    // single row per genre. All fetches (base + every genre) run in
     // parallel so the genre fan-out doesn't multiply Home's real load time.
     override suspend fun getHomeSections(): List<HomeSection> = coroutineScope {
-        catalogFamilies.flatMap { family ->
-            val genres = family
-                .flatMap { it.extra.firstOrNull { extra -> extra.name == "genre" }?.options.orEmpty() }
-                .distinct()
-                .take(MAX_GENRE_ROWS_PER_FAMILY)
+        // Base ("no genre filter") row: every catalog that can answer an
+        // unfiltered request (its genre extra, if any, isn't required)
+        // merges into one row, regardless of type.
+        val baseCatalogs = supportedCatalogs.filter { catalogDef ->
+            catalogDef.extra.firstOrNull { it.name == "genre" }?.isRequired != true
+        }
+        val baseRowDeferred = if (baseCatalogs.isNotEmpty()) {
+            listOf(async { fetchMergedSection(baseCatalogs, title = manifest.name, extra = emptyMap(), rowKey = "base") })
+        } else {
+            emptyList()
+        }
 
-            // Family members whose genre extra is required can't answer an
-            // unfiltered request -- only the rest contribute to the base row.
-            val baseCatalogs = family.filter { catalogDef ->
-                catalogDef.extra.firstOrNull { extra -> extra.name == "genre" }?.isRequired != true
-            }
-            val baseRowDeferred = if (baseCatalogs.isNotEmpty()) {
-                val title = family.firstNotNullOfOrNull { it.name } ?: manifest.name
-                listOf(async { fetchMergedSection(baseCatalogs, title = title, extra = emptyMap(), idSuffix = null) })
-            } else {
-                emptyList()
-            }
+        // Genre rows: the union of every genre any supported catalog
+        // declares, each merging every catalog (any type) that lists it.
+        val genres = supportedCatalogs
+            .flatMap { it.extra.firstOrNull { extra -> extra.name == "genre" }?.options.orEmpty() }
+            .distinct()
+            .take(MAX_GENRE_ROWS)
 
-            val genreRowDeferreds = genres.map { genre ->
-                val catalogsForGenre = family.filter { catalogDef ->
-                    genre in catalogDef.extra.firstOrNull { extra -> extra.name == "genre" }?.options.orEmpty()
-                }
-                async { fetchMergedSection(catalogsForGenre, title = genre, extra = mapOf("genre" to genre), idSuffix = genre) }
+        val genreRowDeferreds = genres.map { genre ->
+            val catalogsForGenre = supportedCatalogs.filter { catalogDef ->
+                genre in catalogDef.extra.firstOrNull { extra -> extra.name == "genre" }?.options.orEmpty()
             }
+            async { fetchMergedSection(catalogsForGenre, title = genre, extra = mapOf("genre" to genre), rowKey = genre) }
+        }
 
-            baseRowDeferred + genreRowDeferreds
-        }.awaitAll().filterNotNull()
+        (baseRowDeferred + genreRowDeferreds).awaitAll().filterNotNull()
     }
 
-    // Fetches every member of one catalog family in parallel and interleaves
-    // their results into a single row (movie[0], series[0], movie[1],
-    // series[1], ...) rather than concatenating, so a merged row actually
-    // reads as mixed content instead of "all the movies, then all the
-    // shows".
+    // Fetches every catalog matched for this row in parallel and interleaves
+    // their results (movie[0], series[0], movie[1], series[1], ...) rather
+    // than concatenating, so a merged row actually reads as mixed content
+    // instead of "all the movies, then all the shows".
     private suspend fun fetchMergedSection(
         catalogDefs: List<AddonCatalogDef>,
         title: String,
         extra: Map<String, String>,
-        idSuffix: String?
+        rowKey: String
     ): HomeSection? = coroutineScope {
-        val familyId = catalogDefs.firstOrNull()?.id ?: return@coroutineScope null
         val perCatalogItems = catalogDefs.map { catalogDef ->
             async {
                 runCatching { client.fetchCatalog(manifestUrl, catalogDef.type, catalogDef.id, extra) }
@@ -124,7 +111,7 @@ class StremioAddonProvider(
         if (items.isEmpty()) return@coroutineScope null
 
         HomeSection(
-            id = listOfNotNull(manifest.id, familyId, idSuffix).joinToString("_"),
+            id = "${manifest.id}_$rowKey",
             title = title,
             items = items
         )
