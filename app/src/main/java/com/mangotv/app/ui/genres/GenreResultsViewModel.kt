@@ -6,6 +6,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.HomeSection
+import com.mangotv.app.data.provider.CatalogProvider
 import com.mangotv.app.data.provider.ProviderRegistry
 import com.mangotv.app.ui.browse.RowsBrowseUiState
 import kotlinx.coroutines.async
@@ -22,7 +23,9 @@ import java.net.URLDecoder
  * getGenreSection(genre) from every installed provider and merges them into
  * one HomeSection -- each provider's own section is already mixed-type
  * (movies+series) via StremioAddonProvider's own merge, this just combines
- * across providers on top of that.
+ * across providers on top of that. loadMore() extends that same section
+ * with additional pages as the user scrolls, so it doesn't dead-end after
+ * one page's worth of items.
  */
 class GenreResultsViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
 
@@ -30,6 +33,13 @@ class GenreResultsViewModel(application: Application, savedStateHandle: SavedSta
 
     private val _uiState = MutableStateFlow<RowsBrowseUiState>(RowsBrowseUiState.Loading)
     val uiState: StateFlow<RowsBrowseUiState> = _uiState.asStateFlow()
+
+    private val allItems = mutableListOf<Content>()
+    private val seenIds = mutableSetOf<String>()
+    private var providersSnapshot: List<CatalogProvider> = emptyList()
+    private var nextPage = 1
+    private var hasMore = true
+    private var isLoadingMore = false
 
     init {
         load()
@@ -40,6 +50,13 @@ class GenreResultsViewModel(application: Application, savedStateHandle: SavedSta
             _uiState.value = RowsBrowseUiState.Loading
 
             val providers = ProviderRegistry.activeProviders()
+            providersSnapshot = providers
+            nextPage = 1
+            hasMore = true
+            isLoadingMore = false
+            allItems.clear()
+            seenIds.clear()
+
             if (providers.isEmpty()) {
                 _uiState.value = RowsBrowseUiState.Loaded(emptyList())
                 return@launch
@@ -56,11 +73,41 @@ class GenreResultsViewModel(application: Application, savedStateHandle: SavedSta
             }
 
             val merged = interleave(perProviderItems).distinctBy { it.id }
+            allItems += merged
+            seenIds += merged.map { it.id }
+
             _uiState.value = when {
-                merged.isNotEmpty() -> RowsBrowseUiState.Loaded(listOf(HomeSection(id = "genre_$genre", title = genre, items = merged)))
+                allItems.isNotEmpty() -> RowsBrowseUiState.Loaded(listOf(HomeSection(id = "genre_$genre", title = genre, items = allItems.toList())))
                 anyProviderFailed -> RowsBrowseUiState.Error("Couldn't reach your installed addons. Check your connection and try again.")
                 else -> RowsBrowseUiState.Loaded(emptyList())
             }
+        }
+    }
+
+    // Called as the grid scrolls near the bottom (see RowsBrowseScreen.kt).
+    // Genre results aren't shuffled (server order is preserved), so unlike
+    // TypeBrowseViewModel this just appends each new page in fetched order.
+    fun loadMore() {
+        if (isLoadingMore || !hasMore || providersSnapshot.isEmpty()) return
+        isLoadingMore = true
+        viewModelScope.launch {
+            val page = nextPage
+            val results = coroutineScope {
+                providersSnapshot.map { provider -> async { runCatching { provider.getMoreGenreItems(genre, page) } } }.awaitAll()
+            }
+            val newItems = interleave(results.map { it.getOrElse { emptyList() } })
+                .filterNot { it.id in seenIds }
+                .distinctBy { it.id }
+
+            if (newItems.isEmpty()) {
+                hasMore = false
+            } else {
+                nextPage++
+                allItems += newItems
+                seenIds += newItems.map { it.id }
+                _uiState.value = RowsBrowseUiState.Loaded(listOf(HomeSection(id = "genre_$genre", title = genre, items = allItems.toList())))
+            }
+            isLoadingMore = false
         }
     }
 }

@@ -62,4 +62,20 @@ interface CatalogProvider {
      * support.
      */
     suspend fun search(query: String): List<Content>
+
+    /**
+     * The next page of [getSectionsByType]'s base-catalog content, using the
+     * Stremio protocol's "skip" pagination convention. [page] is 1-indexed —
+     * page 1 is the page immediately after getSectionsByType()'s own
+     * (implicit page 0) results. Returns an empty list once the provider has
+     * no more pages. Backs infinite scroll on Movies/TV Shows.
+     */
+    suspend fun getMoreItemsByType(type: ContentType, page: Int): List<Content>
+
+    /**
+     * The next page of [getGenreSection]'s content for [genre], same
+     * pagination convention as [getMoreItemsByType]. Backs infinite scroll
+     * on Genre Results.
+     */
+    suspend fun getMoreGenreItems(genre: String, page: Int): List<Content>
 }

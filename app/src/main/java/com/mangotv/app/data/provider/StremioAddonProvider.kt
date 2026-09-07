@@ -24,6 +24,14 @@ private val SUPPORTED_CATALOG_TYPES = setOf("movie", "series")
 // which is why they didn't show up as options anywhere.
 private const val MAX_GENRE_ROWS = 30
 
+// Stremio's conventional catalog page size -- "skip" is an item-count
+// offset, not a page number, so this is an assumption about how many items
+// an addon returns per response. If an addon's actual page size differs,
+// getMoreItemsByType/getMoreGenreItems's dedup still prevents duplicates
+// showing up; the only consequence is possibly a small gap or overlap
+// between pages, not a crash.
+private const val PAGE_SIZE = 100
+
 /**
  * A [CatalogProvider] backed by a real, user-installed Stremio-protocol
  * addon. It normalizes whatever the addon returns into Mango TV's own
@@ -86,6 +94,22 @@ class StremioAddonProvider(
         return fetchMergedSection(catalogsForGenre, title = genre, extra = mapOf("genre" to genre), rowKey = "genre_$genre")
     }
 
+    override suspend fun getMoreItemsByType(type: ContentType, page: Int): List<Content> {
+        val stremioType = if (type == ContentType.TV_SHOW) "series" else "movie"
+        val baseCatalogs = supportedCatalogs.filter { it.type == stremioType }
+            .filter { catalogDef -> catalogDef.extra.firstOrNull { it.name == "genre" }?.isRequired != true }
+        if (baseCatalogs.isEmpty()) return emptyList()
+        return fetchPage(baseCatalogs, extra = emptyMap(), page = page)
+    }
+
+    override suspend fun getMoreGenreItems(genre: String, page: Int): List<Content> {
+        val catalogsForGenre = supportedCatalogs.filter { catalogDef ->
+            genre in catalogDef.extra.firstOrNull { it.name == "genre" }?.options.orEmpty()
+        }
+        if (catalogsForGenre.isEmpty()) return emptyList()
+        return fetchPage(catalogsForGenre, extra = mapOf("genre" to genre), page = page)
+    }
+
     // Hybrid: real server-side search for any catalog that declares a
     // "search" extra (interleaved+deduped across them same as any other
     // merged row), falling back to a client-side title match over the base
@@ -123,6 +147,24 @@ class StremioAddonProvider(
             }
         }.awaitAll()
         interleave(perBaseCatalog).distinctBy { it.id }.filter { it.title.contains(query, ignoreCase = true) }
+    }
+
+    // Shared by getMoreItemsByType/getMoreGenreItems: fetches one "skip"
+    // page across every matching catalog in parallel and interleaves the
+    // results, same merge behavior fetchMergedSection uses for page 0 --
+    // just without building a titled HomeSection, since both pagination
+    // callers only ever want the flat item list.
+    private suspend fun fetchPage(catalogDefs: List<AddonCatalogDef>, extra: Map<String, String>, page: Int): List<Content> = coroutineScope {
+        val pagedExtra = extra + ("skip" to (page * PAGE_SIZE).toString())
+        val perCatalogItems = catalogDefs.map { catalogDef ->
+            async {
+                runCatching { client.fetchCatalog(manifestUrl, catalogDef.type, catalogDef.id, pagedExtra) }
+                    .getOrNull()
+                    ?.map { it.toContent(providerId = id) }
+                    .orEmpty()
+            }
+        }.awaitAll()
+        interleave(perCatalogItems)
     }
 
     // Union of every genre any supported catalog declares, capped as a

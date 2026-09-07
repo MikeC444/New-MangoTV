@@ -19,6 +19,7 @@ fun GenreResultsScreen(
         uiState = uiState,
         onNavigate = onNavigate,
         onRetry = viewModel::load,
-        layout = RowsBrowseLayout.GRID
+        layout = RowsBrowseLayout.GRID,
+        onLoadMore = viewModel::loadMore
     )
 }

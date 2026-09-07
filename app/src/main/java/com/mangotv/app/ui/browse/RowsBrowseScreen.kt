@@ -96,14 +96,19 @@ fun RowsBrowseContent(
     onNavigate: (String) -> Unit,
     onRetry: () -> Unit,
     emptyMessage: String = "Nothing to show here right now.",
-    layout: RowsBrowseLayout = RowsBrowseLayout.ROWS
+    layout: RowsBrowseLayout = RowsBrowseLayout.ROWS,
+    // Grid-only (see RowsBrowseGridContent) -- called as the user scrolls
+    // near the bottom so Movies/TV Shows/Genre Results can page in more
+    // content instead of dead-ending. Defaults to a no-op so My List (ROWS
+    // layout) is unaffected.
+    onLoadMore: () -> Unit = {}
 ) {
     Box(Modifier.fillMaxSize().background(MangoBackground)) {
         when (uiState) {
             is RowsBrowseUiState.Loading -> RowsLoadingSkeleton()
             is RowsBrowseUiState.Error -> FullScreenErrorState(message = uiState.message, onRetry = onRetry)
             is RowsBrowseUiState.Loaded -> if (layout == RowsBrowseLayout.GRID) {
-                RowsBrowseGridContent(screenTitle, navLabel, uiState.sections.flatMap { it.items }, onNavigate, emptyMessage)
+                RowsBrowseGridContent(screenTitle, navLabel, uiState.sections.flatMap { it.items }, onNavigate, emptyMessage, onLoadMore)
             } else {
                 RowsBrowseLoadedContent(screenTitle, navLabel, uiState.sections, onNavigate, emptyMessage)
             }
@@ -285,7 +290,8 @@ private fun RowsBrowseGridContent(
     navLabel: String,
     items: List<Content>,
     onNavigate: (String) -> Unit,
-    emptyMessage: String
+    emptyMessage: String,
+    onLoadMore: () -> Unit
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -318,6 +324,19 @@ private fun RowsBrowseGridContent(
             .collect { (index, offset) ->
                 if (navRegionFocused && (index != 0 || offset != 0)) {
                     listState.scrollToItem(0, 0)
+                }
+            }
+    }
+
+    // Infinite scroll: fires (repeatedly, harmlessly -- the ViewModel side
+    // guards against duplicate/overlapping fetches) whenever one of the
+    // last couple of grid rows is visible, so more content is already
+    // loading in before the user actually hits the bottom.
+    LaunchedEffect(listState, rows.size) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collect { lastVisibleIndex ->
+                if (lastVisibleIndex != null && rows.isNotEmpty() && lastVisibleIndex >= rows.size - 1) {
+                    onLoadMore()
                 }
             }
     }
@@ -467,7 +486,8 @@ fun MoviesScreen(onNavigate: (String) -> Unit, viewModel: MoviesViewModel = view
         uiState = uiState,
         onNavigate = onNavigate,
         onRetry = viewModel::load,
-        layout = RowsBrowseLayout.GRID
+        layout = RowsBrowseLayout.GRID,
+        onLoadMore = viewModel::loadMore
     )
 }
 
@@ -480,6 +500,7 @@ fun TvShowsScreen(onNavigate: (String) -> Unit, viewModel: TvShowsViewModel = vi
         uiState = uiState,
         onNavigate = onNavigate,
         onRetry = viewModel::load,
-        layout = RowsBrowseLayout.GRID
+        layout = RowsBrowseLayout.GRID,
+        onLoadMore = viewModel::loadMore
     )
 }
