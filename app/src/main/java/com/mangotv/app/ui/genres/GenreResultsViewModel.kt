@@ -8,6 +8,9 @@ import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.HomeSection
 import com.mangotv.app.data.provider.ProviderRegistry
 import com.mangotv.app.ui.browse.RowsBrowseUiState
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,11 +45,13 @@ class GenreResultsViewModel(application: Application, savedStateHandle: SavedSta
                 return@launch
             }
 
+            val results = coroutineScope {
+                providers.map { provider -> async { runCatching { provider.getGenreSection(genre) } } }.awaitAll()
+            }
             val perProviderItems = mutableListOf<List<Content>>()
             var anyProviderFailed = false
-            for (provider in providers) {
-                runCatching { provider.getGenreSection(genre) }
-                    .onSuccess { section -> section?.let { perProviderItems += it.items } }
+            results.forEach { result ->
+                result.onSuccess { section -> section?.let { perProviderItems += it.items } }
                     .onFailure { anyProviderFailed = true }
             }
 

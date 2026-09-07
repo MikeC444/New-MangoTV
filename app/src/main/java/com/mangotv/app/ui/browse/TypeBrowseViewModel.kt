@@ -7,6 +7,9 @@ import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.provider.CatalogProvider
 import com.mangotv.app.data.provider.ProviderRegistry
 import com.mangotv.app.data.model.HomeSection
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,12 +46,13 @@ open class TypeBrowseViewModel(application: Application, private val type: Conte
             return
         }
 
+        val results = coroutineScope {
+            providers.map { provider -> async { runCatching { provider.getSectionsByType(type) } } }.awaitAll()
+        }
         val sections = mutableListOf<HomeSection>()
         var anyProviderFailed = false
-        for (provider in providers) {
-            runCatching { provider.getSectionsByType(type) }
-                .onSuccess { sections += it }
-                .onFailure { anyProviderFailed = true }
+        results.forEach { result ->
+            result.onSuccess { sections += it }.onFailure { anyProviderFailed = true }
         }
 
         // Flatten every provider's base + genre rows into one deduplicated,

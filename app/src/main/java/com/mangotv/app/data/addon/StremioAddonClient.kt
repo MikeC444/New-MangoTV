@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.URLEncoder
@@ -21,6 +22,13 @@ class StremioAddonClient {
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
+        // Default maxRequestsPerHost (5) throttles this app's own
+        // coroutine-level fan-out (up to MAX_GENRE_ROWS concurrent catalog
+        // requests to the same addon) to 5-at-a-time on the wire -- raising
+        // it lets more of that already-parallel work actually run at once
+        // instead of queueing in batches. Total request volume/pattern the
+        // addon server sees is unchanged.
+        .dispatcher(Dispatcher().apply { maxRequestsPerHost = 16 })
         .build()
 
     private val json = Json {

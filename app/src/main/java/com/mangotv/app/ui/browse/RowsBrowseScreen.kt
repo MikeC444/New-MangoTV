@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -256,9 +257,23 @@ private fun RowsBrowseLoadedContent(
     }
 }
 
-// Reasonable, tunable default for full-size posters at this app's
-// MangoDimens.PosterWidth/ScreenPaddingHorizontal on a Fire TV screen.
-private const val GRID_COLUMNS = 6
+// Fixed chunk size for items.chunked(GRID_COLUMNS) below -- the actual
+// on-screen poster size (posterScale) is computed at runtime from measured
+// layout constraints (see RowsBrowseGridContent) so this many columns
+// reliably fit regardless of the device's actual dp width, rather than
+// assuming a fixed screen size.
+private const val GRID_COLUMNS = 7
+
+// Target number of grid rows visible in the viewport without scrolling --
+// also drives the runtime posterScale computation, not a hard cap on rows.
+private const val GRID_ROWS_VISIBLE = 4
+
+// Approximate height of a card's below-poster text block (spacer + title
+// line + year line) at small scale -- Compose doesn't expose text height
+// without actually measuring it, so this is an estimate used only to size
+// the grid; being slightly off just means a bit more or less than exactly
+// GRID_ROWS_VISIBLE rows show, not a functional bug.
+private val GRID_CARD_TEXT_HEIGHT = 40.dp
 
 /**
  * Vertical, multi-column poster grid -- Movies, TV Shows, and Genre Results
@@ -338,7 +353,28 @@ private fun RowsBrowseGridContent(
         onNavigate(MangoRoutes.detail(providerId, target.type, target.id))
     }
 
-    Box(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // Width-driven: the scale that makes exactly GRID_COLUMNS columns
+        // fit edge-to-edge within the existing screen margins/card spacing.
+        val availableWidth = maxWidth - MangoDimens.ScreenPaddingHorizontal * 2
+        val widthDrivenCardWidth = (availableWidth - MangoDimens.CardSpacing * (GRID_COLUMNS - 1)) / GRID_COLUMNS
+        val widthDrivenScale = widthDrivenCardWidth / MangoDimens.PosterWidth
+
+        // Height-driven: the scale that makes GRID_ROWS_VISIBLE rows fit in
+        // the space left after the nav bar/top offset/title row.
+        val posterAspect = MangoDimens.PosterHeight / MangoDimens.PosterWidth
+        val topOffset = MangoDimens.NavBarHeight + 24.dp
+        val titleRowHeight = 46.dp // ~displayMedium's line height + vertical padding
+        val availableHeight = maxHeight - topOffset - titleRowHeight - MangoDimens.RowSpacing * (GRID_ROWS_VISIBLE - 1)
+        val perRowHeight = availableHeight / GRID_ROWS_VISIBLE
+        val heightDrivenPosterHeight = perRowHeight - GRID_CARD_TEXT_HEIGHT
+        val heightDrivenCardWidth = heightDrivenPosterHeight / posterAspect
+        val heightDrivenScale = heightDrivenCardWidth / MangoDimens.PosterWidth
+
+        // The smaller of the two guarantees BOTH "at least GRID_COLUMNS
+        // across" and "at least GRID_ROWS_VISIBLE down" simultaneously.
+        val posterScale = minOf(widthDrivenScale, heightDrivenScale).coerceIn(0.3f, 1f)
+
         if (rows.isEmpty()) {
             Text(
                 text = emptyMessage,
@@ -404,7 +440,8 @@ private fun RowsBrowseGridContent(
                                 ContentCard(
                                     content = content,
                                     onClick = { navigateToContent(content) },
-                                    focusRequester = if (rowIndex == 0 && colIndex == 0) firstCardFocusRequester else null
+                                    focusRequester = if (rowIndex == 0 && colIndex == 0) firstCardFocusRequester else null,
+                                    posterScale = posterScale
                                 )
                             }
                         }

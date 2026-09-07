@@ -60,15 +60,21 @@ class StremioAddonProvider(
     // parallel so the genre fan-out doesn't multiply Home's real load time.
     override suspend fun getHomeSections(): List<HomeSection> = buildSections(supportedCatalogs, rowKeyPrefix = "")
 
-    // Same base+genre fan-out as getHomeSections(), restricted to one
-    // content type -- backs the dedicated Movies/TV Shows browse screens.
-    // rowKeyPrefix keeps these rows' ids distinct from getHomeSections()'s
-    // own (which HomeRowPreferences persists hidden/order state against),
-    // so browsing Movies/TV Shows can never collide with or disturb a
-    // user's saved Home Rows settings.
+    // Movies/TV Shows show one flattened, shuffled row -- no genre
+    // breakdown -- so unlike getHomeSections() this deliberately does NOT
+    // fan out one request per declared genre (previously up to
+    // MAX_GENRE_ROWS extra HTTP requests just to throw the grouping away
+    // again on the client). The base catalog alone is plenty of content for
+    // a shuffled browse row.
     override suspend fun getSectionsByType(type: ContentType): List<HomeSection> {
         val stremioType = if (type == ContentType.TV_SHOW) "series" else "movie"
-        return buildSections(supportedCatalogs.filter { it.type == stremioType }, rowKeyPrefix = "${stremioType}_")
+        val catalogs = supportedCatalogs.filter { it.type == stremioType }
+        val baseCatalogs = catalogs.filter { catalogDef ->
+            catalogDef.extra.firstOrNull { it.name == "genre" }?.isRequired != true
+        }
+        if (baseCatalogs.isEmpty()) return emptyList()
+        val title = baseCatalogs.firstNotNullOfOrNull { it.name } ?: manifest.name
+        return listOfNotNull(fetchMergedSection(baseCatalogs, title = title, extra = emptyMap(), rowKey = "${stremioType}_base"))
     }
 
     override suspend fun getAvailableGenres(): List<String> = declaredGenres(supportedCatalogs)
