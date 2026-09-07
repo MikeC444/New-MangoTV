@@ -7,6 +7,7 @@ import com.mangotv.app.MangoTvApplication
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.HomeSection
 import com.mangotv.app.data.provider.CatalogProvider
+import com.mangotv.app.data.provider.HomeRowPreferences
 import com.mangotv.app.data.provider.ProviderRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,18 +38,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         // row from Settings > Home Rows — Home never needs to be told to
         // refresh explicitly.
         viewModelScope.launch {
-            combine(ProviderRegistry.providers, homeRowPreferences.hiddenRowIds) { providers, hidden -> providers to hidden }
-                .collect { (providers, hidden) -> load(providers, hidden) }
+            combine(ProviderRegistry.providers, homeRowPreferences.preferences) { providers, prefs -> providers to prefs }
+                .collect { (providers, prefs) -> load(providers, prefs) }
         }
     }
 
     fun load() {
         viewModelScope.launch {
-            load(ProviderRegistry.activeProviders(), homeRowPreferences.hiddenRowIds.value)
+            load(ProviderRegistry.activeProviders(), homeRowPreferences.preferences.value)
         }
     }
 
-    private suspend fun load(providers: List<CatalogProvider>, hiddenRowIds: Set<String>) {
+    private suspend fun load(providers: List<CatalogProvider>, rowPreferences: HomeRowPreferences) {
         _uiState.value = HomeUiState.Loading
 
         if (providers.isEmpty()) {
@@ -69,7 +70,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 .onFailure { anyProviderFailed = true }
         }
 
-        val visibleSections = sections.filterNot { it.id in hiddenRowIds }
+        val visibleSections = rowPreferences.applyOrder(sections).filterNot { it.id in rowPreferences.hiddenRowIds }
 
         _uiState.value = when {
             hero.isNotEmpty() || visibleSections.isNotEmpty() -> HomeUiState.Success(hero, visibleSections)

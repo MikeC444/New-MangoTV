@@ -3,16 +3,21 @@ package com.mangotv.app.ui.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.mangotv.app.navigation.routeForNavLabel
 import com.mangotv.app.ui.home.MangoNavItems
@@ -34,6 +39,7 @@ fun SettingsScaffold(
     onNavigate: (String) -> Unit,
     navFocusRequester: FocusRequester,
     firstContentFocusRequester: FocusRequester,
+    titleIcon: ImageVector? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val settingsIndex = remember { MangoNavItems.indexOf("Settings") }
@@ -56,11 +62,23 @@ fun SettingsScaffold(
                 vertical = 28.dp
             )
         ) {
-            Text(
-                text = title,
-                color = TextPrimary,
-                style = MaterialTheme.typography.displayMedium
-            )
+            if (titleIcon != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = titleIcon, contentDescription = null, tint = TextPrimary)
+                    Spacer(Modifier.width(14.dp))
+                    Text(
+                        text = title,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.displayMedium
+                    )
+                }
+            } else {
+                Text(
+                    text = title,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.displayMedium
+                )
+            }
             Spacer(Modifier.height(28.dp))
             content()
         }
