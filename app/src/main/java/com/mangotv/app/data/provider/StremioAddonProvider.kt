@@ -113,7 +113,14 @@ class StremioAddonProvider(
             }
         }.awaitAll()
 
-        val items = interleave(perCatalogItems)
+        // Merging multiple catalogs into one row can produce the same title
+        // twice -- e.g. the movie and series catalogs both returning an
+        // entry under the same id for a given genre -- and ContentRow's
+        // LazyRow keys items by Content.id, which crashes outright
+        // (IllegalArgumentException: "Key ... was already used") rather
+        // than silently rendering a duplicate. distinctBy keeps the first
+        // occurrence, matching interleave's ordering.
+        val items = interleave(perCatalogItems).distinctBy { it.id }
         if (items.isEmpty()) return@coroutineScope null
 
         HomeSection(
