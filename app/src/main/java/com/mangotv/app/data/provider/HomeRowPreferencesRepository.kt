@@ -49,7 +49,7 @@ data class HomeRowPreferences(
         val byId = sections.associateBy { it.id }
         val ordered = order.mapNotNull { byId[it] }
         val remaining = sections.filterNot { it.id in order }
-            .sortedBy { defaultRank(it.title) }
+            .sortedBy { defaultRank(it) }
         return ordered + remaining
     }
 
@@ -71,8 +71,15 @@ data class HomeRowPreferences(
             "documentary", "music", "musical", "adventure"
         )
 
-        private fun defaultRank(title: String): Int {
-            val rank = DEFAULT_ROW_PRIORITY.indexOf(title.trim().lowercase())
+        private fun defaultRank(section: HomeSection): Int {
+            // StremioAddonProvider's unfiltered "base" row for each addon
+            // (its id always ends "_base") is conceptually that addon's
+            // main/featured row regardless of what it's actually titled --
+            // some addons don't label it "Popular"/"Featured" at all, so
+            // relying on title text alone would bury it among 30 genre rows
+            // instead of leading them. Ranked ahead of every title match.
+            if (section.id.endsWith("_base")) return -1
+            val rank = DEFAULT_ROW_PRIORITY.indexOf(section.title.trim().lowercase())
             return if (rank >= 0) rank else DEFAULT_ROW_PRIORITY.size
         }
     }

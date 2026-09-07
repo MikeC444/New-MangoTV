@@ -66,7 +66,13 @@ class StremioAddonProvider(
             catalogDef.extra.firstOrNull { it.name == "genre" }?.isRequired != true
         }
         val baseRowDeferred = if (baseCatalogs.isNotEmpty()) {
-            listOf(async { fetchMergedSection(baseCatalogs, title = manifest.name, extra = emptyMap(), rowKey = "base") })
+            // Prefer the catalog's own declared name (Cinemeta calls its
+            // base catalog "Popular") over the addon's name -- besides
+            // being the more accurate label, it's also what lets this row
+            // match DEFAULT_ROW_PRIORITY's "popular"/"featured" entries and
+            // sort to the top instead of getting lost among 30 genre rows.
+            val title = baseCatalogs.firstNotNullOfOrNull { it.name } ?: manifest.name
+            listOf(async { fetchMergedSection(baseCatalogs, title = title, extra = emptyMap(), rowKey = "base") })
         } else {
             emptyList()
         }
