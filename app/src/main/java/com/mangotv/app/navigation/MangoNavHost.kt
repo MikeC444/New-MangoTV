@@ -10,6 +10,7 @@ import com.mangotv.app.ui.home.HomeScreen
 import com.mangotv.app.ui.player.PlayerScreen
 import com.mangotv.app.ui.settings.AddAddonScreen
 import com.mangotv.app.ui.settings.AddonsScreen
+import com.mangotv.app.ui.settings.HomeRowsScreen
 import com.mangotv.app.ui.settings.SettingsScreen
 import com.mangotv.app.ui.sources.SourcesScreen
 import java.net.URLDecoder
@@ -27,7 +28,13 @@ fun MangoNavHost() {
         composable(MangoRoutes.SETTINGS) {
             SettingsScreen(
                 onNavigate = { route -> navController.navigate(route) },
-                onOpenAddons = { navController.navigate(MangoRoutes.SETTINGS_ADDONS) }
+                onOpenAddons = { navController.navigate(MangoRoutes.SETTINGS_ADDONS) },
+                onOpenHomeRows = { navController.navigate(MangoRoutes.SETTINGS_HOME_ROWS) }
+            )
+        }
+        composable(MangoRoutes.SETTINGS_HOME_ROWS) {
+            HomeRowsScreen(
+                onNavigate = { route -> navController.navigate(route) }
             )
         }
         composable(MangoRoutes.SETTINGS_ADDONS) {

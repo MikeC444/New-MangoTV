@@ -8,6 +8,7 @@ object MangoRoutes {
     const val SETTINGS = "settings"
     const val SETTINGS_ADDONS = "settings/addons"
     const val SETTINGS_ADD_ADDON = "settings/addons/add"
+    const val SETTINGS_HOME_ROWS = "settings/home_rows"
     const val DETAIL_PATTERN = "detail/{providerId}/{type}/{id}"
     const val SOURCES_PATTERN = "sources/{providerId}/{type}/{id}/{season}/{episode}"
     const val PLAYER_PATTERN = "player/{providerId}/{type}/{id}/{season}/{episode}/{streamId}"

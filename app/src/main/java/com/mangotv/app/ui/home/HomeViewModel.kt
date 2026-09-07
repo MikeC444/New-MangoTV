@@ -1,13 +1,17 @@
 package com.mangotv.app.ui.home
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.mangotv.app.MangoTvApplication
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.HomeSection
+import com.mangotv.app.data.provider.CatalogProvider
 import com.mangotv.app.data.provider.ProviderRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 sealed interface HomeUiState {
@@ -20,50 +24,57 @@ sealed interface HomeUiState {
     data class Error(val message: String) : HomeUiState
 }
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val homeRowPreferences = (application as MangoTvApplication).container.homeRowPreferencesRepository
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
         // Re-collects (and reloads) automatically whenever an addon is
-        // installed, removed, enabled or disabled — Home never needs to be
-        // told to refresh explicitly.
+        // installed, removed, enabled or disabled, or the user hides/shows a
+        // row from Settings > Home Rows — Home never needs to be told to
+        // refresh explicitly.
         viewModelScope.launch {
-            ProviderRegistry.providers.collect {
-                load()
-            }
+            combine(ProviderRegistry.providers, homeRowPreferences.hiddenRowIds) { providers, hidden -> providers to hidden }
+                .collect { (providers, hidden) -> load(providers, hidden) }
         }
     }
 
     fun load() {
         viewModelScope.launch {
-            _uiState.value = HomeUiState.Loading
+            load(ProviderRegistry.activeProviders(), homeRowPreferences.hiddenRowIds.value)
+        }
+    }
 
-            val providers = ProviderRegistry.activeProviders()
-            if (providers.isEmpty()) {
-                _uiState.value = HomeUiState.Empty
-                return@launch
-            }
+    private suspend fun load(providers: List<CatalogProvider>, hiddenRowIds: Set<String>) {
+        _uiState.value = HomeUiState.Loading
 
-            val hero = mutableListOf<Content>()
-            val sections = mutableListOf<HomeSection>()
-            var anyProviderFailed = false
+        if (providers.isEmpty()) {
+            _uiState.value = HomeUiState.Empty
+            return
+        }
 
-            for (provider in providers) {
-                runCatching { provider.getFeatured() }
-                    .onSuccess { hero += it }
-                    .onFailure { anyProviderFailed = true }
-                runCatching { provider.getHomeSections() }
-                    .onSuccess { sections += it }
-                    .onFailure { anyProviderFailed = true }
-            }
+        val hero = mutableListOf<Content>()
+        val sections = mutableListOf<HomeSection>()
+        var anyProviderFailed = false
 
-            _uiState.value = when {
-                hero.isNotEmpty() || sections.isNotEmpty() -> HomeUiState.Success(hero, sections)
-                anyProviderFailed -> HomeUiState.Error("Couldn't reach your installed addons. Check your connection and try again.")
-                else -> HomeUiState.Empty
-            }
+        for (provider in providers) {
+            runCatching { provider.getFeatured() }
+                .onSuccess { hero += it }
+                .onFailure { anyProviderFailed = true }
+            runCatching { provider.getHomeSections() }
+                .onSuccess { sections += it }
+                .onFailure { anyProviderFailed = true }
+        }
+
+        val visibleSections = sections.filterNot { it.id in hiddenRowIds }
+
+        _uiState.value = when {
+            hero.isNotEmpty() || visibleSections.isNotEmpty() -> HomeUiState.Success(hero, visibleSections)
+            anyProviderFailed -> HomeUiState.Error("Couldn't reach your installed addons. Check your connection and try again.")
+            else -> HomeUiState.Empty
         }
     }
 }

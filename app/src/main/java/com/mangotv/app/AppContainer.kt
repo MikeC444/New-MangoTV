@@ -3,6 +3,7 @@ package com.mangotv.app
 import android.content.Context
 import com.mangotv.app.data.addon.AddonRepository
 import com.mangotv.app.data.player.PlayerPreferencesRepository
+import com.mangotv.app.data.provider.HomeRowPreferencesRepository
 
 /**
  * A small hand-rolled container instead of a DI framework: this app only has
@@ -22,8 +23,14 @@ import com.mangotv.app.data.player.PlayerPreferencesRepository
  * the player itself ever reads it — so it stays lazy and is only
  * constructed (and only then restores its DataStore-backed record) the
  * first time playback actually starts.
+ *
+ * homeRowPreferencesRepository is the same story as playerPreferencesRepository
+ * — only Home and its Settings > Home Rows screen ever touch it, so it's
+ * constructed lazily the first time either is visited rather than eagerly
+ * at app startup.
  */
 class AppContainer(context: Context) {
     val addonRepository: AddonRepository = AddonRepository(context)
     val playerPreferencesRepository: PlayerPreferencesRepository by lazy { PlayerPreferencesRepository(context) }
+    val homeRowPreferencesRepository: HomeRowPreferencesRepository by lazy { HomeRowPreferencesRepository(context) }
 }

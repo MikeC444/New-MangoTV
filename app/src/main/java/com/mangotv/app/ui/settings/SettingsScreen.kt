@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,10 +31,12 @@ import com.mangotv.app.ui.theme.TextSecondary
 @Composable
 fun SettingsScreen(
     onNavigate: (String) -> Unit,
-    onOpenAddons: () -> Unit
+    onOpenAddons: () -> Unit,
+    onOpenHomeRows: () -> Unit
 ) {
     val navFocusRequester = remember { FocusRequester() }
     val addonsFocusRequester = remember { FocusRequester() }
+    val homeRowsFocusRequester = remember { FocusRequester() }
 
     SettingsScaffold(
         title = "Settings",
@@ -48,6 +51,14 @@ fun SettingsScreen(
             onClick = onOpenAddons,
             focusRequester = addonsFocusRequester,
             focusUp = navFocusRequester
+        )
+        Spacer(Modifier.height(14.dp))
+        SettingsCategoryRow(
+            icon = Icons.Filled.ViewList,
+            title = "Home Rows",
+            subtitle = "Choose which rows show up on Home",
+            onClick = onOpenHomeRows,
+            focusRequester = homeRowsFocusRequester
         )
         Spacer(Modifier.height(32.dp))
         Text(
