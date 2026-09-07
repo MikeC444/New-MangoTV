@@ -1,7 +1,6 @@
 package com.mangotv.app.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -82,7 +81,7 @@ fun HomeRowsScreen(
             color = TextTertiary,
             style = MaterialTheme.typography.bodySmall
         )
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(12.dp))
 
         when (val state = uiState) {
             is HomeRowsUiState.Loading -> CircularProgressIndicator(color = MangoAmber)
@@ -106,7 +105,7 @@ fun HomeRowsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         itemsIndexed(orderedRows, key = { _, row -> row.id }) { index, row ->
                             val visible = row.id !in preferences.hiddenRowIds
@@ -186,14 +185,18 @@ private fun HomeRowToggleRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                    .padding(horizontal = 18.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = row.title, color = titleColor, style = MaterialTheme.typography.titleLarge)
-                    Text(text = rowSubtitle(row), color = subtitleColor, style = MaterialTheme.typography.bodyMedium)
-                }
-                Spacer(Modifier.width(16.dp))
+                Text(
+                    text = row.title,
+                    color = titleColor,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(text = rowSubtitle(row), color = subtitleColor, style = MaterialTheme.typography.labelSmall)
+                Spacer(Modifier.width(14.dp))
                 Switch(
                     checked = visible,
                     onCheckedChange = null,
@@ -212,7 +215,7 @@ private fun HomeRowToggleRow(
         TvFocusSurface(
             onClick = onToggleGrabbed,
             modifier = Modifier
-                .size(56.dp)
+                .size(40.dp)
                 .onPreviewKeyEvent { event ->
                     if (grabbed && event.type == KeyEventType.KeyDown &&
                         (event.key == Key.DirectionUp || event.key == Key.DirectionDown)
@@ -233,7 +236,9 @@ private fun HomeRowToggleRow(
                 imageVector = Icons.Filled.Menu,
                 contentDescription = if (grabbed) "Stop moving ${row.title}" else "Reorder ${row.title}",
                 tint = if (grabbed) TextPrimary else TextSecondary,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(20.dp)
             )
         }
     }
