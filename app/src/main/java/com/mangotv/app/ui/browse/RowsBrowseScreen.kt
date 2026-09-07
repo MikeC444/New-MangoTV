@@ -4,7 +4,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -26,7 +28,13 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -37,6 +45,7 @@ import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.HomeSection
 import com.mangotv.app.navigation.MangoRoutes
 import com.mangotv.app.navigation.routeForNavLabel
+import com.mangotv.app.ui.components.ContentCard
 import com.mangotv.app.ui.components.ContentRow
 import com.mangotv.app.ui.components.FullScreenErrorState
 import com.mangotv.app.ui.components.RowsLoadingSkeleton
@@ -54,6 +63,12 @@ sealed interface RowsBrowseUiState {
     data class Loaded(val sections: List<HomeSection>) : RowsBrowseUiState
     data class Error(val message: String) : RowsBrowseUiState
 }
+
+// ROWS = the original horizontal-shelf layout (My List keeps this).
+// GRID = a vertical, multi-column poster grid (Movies, TV Shows, Genre
+// Results) -- see RowsBrowseGridContent for why this is built from
+// manually-chunked Rows in the same LazyColumn rather than LazyVerticalGrid.
+enum class RowsBrowseLayout { ROWS, GRID }
 
 /**
  * Shared shell for any "stack of ContentRows under the nav bar, no hero"
@@ -79,13 +94,18 @@ fun RowsBrowseContent(
     uiState: RowsBrowseUiState,
     onNavigate: (String) -> Unit,
     onRetry: () -> Unit,
-    emptyMessage: String = "Nothing to show here right now."
+    emptyMessage: String = "Nothing to show here right now.",
+    layout: RowsBrowseLayout = RowsBrowseLayout.ROWS
 ) {
     Box(Modifier.fillMaxSize().background(MangoBackground)) {
         when (uiState) {
             is RowsBrowseUiState.Loading -> RowsLoadingSkeleton()
             is RowsBrowseUiState.Error -> FullScreenErrorState(message = uiState.message, onRetry = onRetry)
-            is RowsBrowseUiState.Loaded -> RowsBrowseLoadedContent(screenTitle, navLabel, uiState.sections, onNavigate, emptyMessage)
+            is RowsBrowseUiState.Loaded -> if (layout == RowsBrowseLayout.GRID) {
+                RowsBrowseGridContent(screenTitle, navLabel, uiState.sections.flatMap { it.items }, onNavigate, emptyMessage)
+            } else {
+                RowsBrowseLoadedContent(screenTitle, navLabel, uiState.sections, onNavigate, emptyMessage)
+            }
         }
     }
 }
@@ -236,6 +256,188 @@ private fun RowsBrowseLoadedContent(
     }
 }
 
+// Reasonable, tunable default for full-size posters at this app's
+// MangoDimens.PosterWidth/ScreenPaddingHorizontal on a Fire TV screen.
+private const val GRID_COLUMNS = 6
+
+/**
+ * Vertical, multi-column poster grid -- Movies, TV Shows, and Genre Results
+ * only (My List keeps RowsBrowseLoadedContent's horizontal rows). Deliberately
+ * NOT LazyVerticalGrid: ContentCard sizes itself with a fixed absolute dp
+ * width/height rather than filling its cell, which doesn't map cleanly onto
+ * GridCells' auto-column-sizing, and this codebase has already fought real
+ * "whole page shaking" stutter bugs from Compose's automatic focus-triggered
+ * bring-into-view interacting with TvFocusSurface's focus-scale animation
+ * (see RowsBrowseLoadedContent's doc comment and HomeScreen.kt/Motion.kt).
+ * Chunking the flat item list into fixed-size rows and reusing the exact
+ * same LazyColumn + explicit animateScrollBy centering machinery already
+ * proven on this screen sidesteps introducing a new, untested API surface
+ * into that exact scroll-on-focus scenario.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun RowsBrowseGridContent(
+    screenTitle: String,
+    navLabel: String,
+    items: List<Content>,
+    onNavigate: (String) -> Unit,
+    emptyMessage: String
+) {
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    val navFocusRequester = remember { FocusRequester() }
+    val firstCardFocusRequester = remember { FocusRequester() }
+    var hasRequestedInitialFocus by remember { mutableStateOf(false) }
+
+    var navRegionFocused by remember { mutableStateOf(true) }
+    var focusedGridRowIndex by remember { mutableStateOf<Int?>(null) }
+
+    val rows = remember(items) { items.chunked(GRID_COLUMNS) }
+
+    LaunchedEffect(items) {
+        if (!hasRequestedInitialFocus) {
+            hasRequestedInitialFocus = true
+            runCatching { navFocusRequester.requestFocus() }
+        }
+    }
+
+    val navScrollLock = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                return if (navRegionFocused) available else Offset.Zero
+            }
+        }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .collect { (index, offset) ->
+                if (navRegionFocused && (index != 0 || offset != 0)) {
+                    listState.scrollToItem(0, 0)
+                }
+            }
+    }
+
+    LaunchedEffect(focusedGridRowIndex, navRegionFocused) {
+        val rowIndex = focusedGridRowIndex ?: return@LaunchedEffect
+        if (navRegionFocused) return@LaunchedEffect
+        val lazyIndex = rowIndex + 1 // offset for the title item at index 0
+        val info = listState.layoutInfo.visibleItemsInfo.find { it.index == lazyIndex }
+        if (info != null) {
+            val viewportHeight = listState.layoutInfo.viewportSize.height
+            val itemCenter = info.offset + info.size / 2f
+            val delta = itemCenter - viewportHeight / 2f
+            listState.animateScrollBy(delta)
+        } else {
+            listState.animateScrollToItem(lazyIndex)
+        }
+    }
+
+    fun navigateToContent(target: Content) {
+        val providerId = target.providerId ?: return
+        onNavigate(MangoRoutes.detail(providerId, target.type, target.id))
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        if (rows.isEmpty()) {
+            Text(
+                text = emptyMessage,
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(horizontal = MangoDimens.ScreenPaddingHorizontal)
+            )
+        } else {
+            CompositionLocalProvider(LocalBringIntoViewSpec provides MangoMotion.DisabledBringIntoViewSpec) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .nestedScroll(navScrollLock)
+                        .fillMaxSize()
+                        .padding(top = MangoDimens.NavBarHeight + 24.dp)
+                ) {
+                    item(key = "title") {
+                        Text(
+                            text = screenTitle,
+                            color = TextPrimary,
+                            style = MaterialTheme.typography.displayMedium,
+                            modifier = Modifier.padding(
+                                horizontal = MangoDimens.ScreenPaddingHorizontal,
+                                vertical = 4.dp
+                            )
+                        )
+                    }
+                    itemsIndexed(rows, key = { index, _ -> "grid_row_$index" }) { rowIndex, rowItems ->
+                        Row(
+                            modifier = Modifier
+                                .padding(horizontal = MangoDimens.ScreenPaddingHorizontal, vertical = MangoDimens.RowSpacing / 2)
+                                .onFocusChanged { state -> if (state.hasFocus) focusedGridRowIndex = rowIndex }
+                                .let { base ->
+                                    if (rowIndex == 0) {
+                                        base.onPreviewKeyEvent { event ->
+                                            // Same UP-past-row interception ContentRow uses,
+                                            // scoped to only the first grid row -- every other
+                                            // row leaves UP unhandled so it falls through to
+                                            // Compose's default focus search and lands in the
+                                            // row above, same as Home's multi-row precedent.
+                                            if (event.key == Key.DirectionUp) {
+                                                if (event.type == KeyEventType.KeyDown) {
+                                                    navRegionFocused = true
+                                                    coroutineScope.launch {
+                                                        listState.scrollToItem(0, 0)
+                                                        runCatching { navFocusRequester.requestFocus() }
+                                                    }
+                                                }
+                                                true
+                                            } else {
+                                                false
+                                            }
+                                        }
+                                    } else {
+                                        base
+                                    }
+                                },
+                            horizontalArrangement = Arrangement.spacedBy(MangoDimens.CardSpacing)
+                        ) {
+                            rowItems.forEachIndexed { colIndex, content ->
+                                ContentCard(
+                                    content = content,
+                                    onClick = { navigateToContent(content) },
+                                    focusRequester = if (rowIndex == 0 && colIndex == 0) firstCardFocusRequester else null
+                                )
+                            }
+                        }
+                    }
+                    item(key = "bottom_spacer") {
+                        Spacer(Modifier.height(48.dp))
+                    }
+                }
+            }
+        }
+
+        TopNavBar(
+            transparentBackground = false,
+            modifier = Modifier.align(Alignment.TopCenter),
+            selectedIndex = MangoNavItems.indexOf(navLabel),
+            selectedItemFocusRequester = navFocusRequester,
+            contentFocusRequester = if (rows.isNotEmpty()) firstCardFocusRequester else null,
+            onItemClick = { label -> routeForNavLabel(label)?.let(onNavigate) },
+            onNavigateDown = if (rows.isNotEmpty()) {
+                {
+                    navRegionFocused = false
+                    coroutineScope.launch {
+                        listState.scrollToItem(0, 0)
+                        runCatching { firstCardFocusRequester.requestFocus() }
+                    }
+                }
+            } else {
+                null
+            }
+        )
+    }
+}
+
 @Composable
 fun MoviesScreen(onNavigate: (String) -> Unit, viewModel: MoviesViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -244,7 +446,8 @@ fun MoviesScreen(onNavigate: (String) -> Unit, viewModel: MoviesViewModel = view
         navLabel = "Movies",
         uiState = uiState,
         onNavigate = onNavigate,
-        onRetry = viewModel::load
+        onRetry = viewModel::load,
+        layout = RowsBrowseLayout.GRID
     )
 }
 
@@ -256,6 +459,7 @@ fun TvShowsScreen(onNavigate: (String) -> Unit, viewModel: TvShowsViewModel = vi
         navLabel = "TV Shows",
         uiState = uiState,
         onNavigate = onNavigate,
-        onRetry = viewModel::load
+        onRetry = viewModel::load,
+        layout = RowsBrowseLayout.GRID
     )
 }

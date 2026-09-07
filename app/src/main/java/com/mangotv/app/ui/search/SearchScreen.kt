@@ -2,6 +2,7 @@ package com.mangotv.app.ui.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -180,12 +181,33 @@ fun SearchScreen(
                         Spacer(Modifier.width(10.dp))
                         Text(text = "Searching…", color = TextSecondary, style = MaterialTheme.typography.bodyMedium)
                     }
-                    is SearchUiState.Results -> ContentRow(
-                        section = HomeSection(id = "search_results", title = "${state.items.size} Results", items = state.items),
-                        onItemClick = ::navigateToContent,
-                        firstItemFocusRequester = firstResultFocusRequester,
-                        onNavigateUpPastRow = { runCatching { searchButtonFocusRequester.requestFocus() } }
-                    )
+                    is SearchUiState.Results -> {
+                        val hasMovies = state.movies.isNotEmpty()
+                        val exitToSearchButton = { runCatching { searchButtonFocusRequester.requestFocus() } }
+                        Column {
+                            if (hasMovies) {
+                                ContentRow(
+                                    section = HomeSection(id = "search_movies", title = "Movies", items = state.movies),
+                                    onItemClick = ::navigateToContent,
+                                    modifier = Modifier.padding(bottom = MangoDimens.RowSpacing),
+                                    firstItemFocusRequester = firstResultFocusRequester,
+                                    onNavigateUpPastRow = { exitToSearchButton() }
+                                )
+                            }
+                            if (state.tvShows.isNotEmpty()) {
+                                ContentRow(
+                                    section = HomeSection(id = "search_tv_shows", title = "TV Shows", items = state.tvShows),
+                                    onItemClick = ::navigateToContent,
+                                    firstItemFocusRequester = if (!hasMovies) firstResultFocusRequester else null,
+                                    onNavigateUpPastRow = if (!hasMovies) {
+                                        { exitToSearchButton() }
+                                    } else {
+                                        null
+                                    }
+                                )
+                            }
+                        }
+                    }
                     is SearchUiState.NoResults -> EmptyState(
                         icon = Icons.Filled.SearchOff,
                         title = "No results",

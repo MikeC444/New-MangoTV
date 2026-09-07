@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mangotv.app.data.model.Content
+import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.provider.ProviderRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,7 @@ import kotlinx.coroutines.launch
 sealed interface SearchUiState {
     data object Idle : SearchUiState
     data object Searching : SearchUiState
-    data class Results(val items: List<Content>) : SearchUiState
+    data class Results(val movies: List<Content>, val tvShows: List<Content>) : SearchUiState
     data class NoResults(val query: String) : SearchUiState
     data class Error(val message: String) : SearchUiState
 }
@@ -50,8 +51,10 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             val merged = interleave(perProvider).distinctBy { it.id }
+            val movies = merged.filter { it.type == ContentType.MOVIE }
+            val tvShows = merged.filter { it.type == ContentType.TV_SHOW }
             _uiState.value = when {
-                merged.isNotEmpty() -> SearchUiState.Results(merged)
+                movies.isNotEmpty() || tvShows.isNotEmpty() -> SearchUiState.Results(movies, tvShows)
                 anyProviderFailed -> SearchUiState.Error("Couldn't reach your installed addons. Check your connection and try again.")
                 else -> SearchUiState.NoResults(query)
             }

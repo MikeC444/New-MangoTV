@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mangotv.app.ui.browse.RowsBrowseContent
+import com.mangotv.app.ui.browse.RowsBrowseLayout
 
 @Composable
 fun GenreResultsScreen(
@@ -17,6 +18,7 @@ fun GenreResultsScreen(
         navLabel = "Genres",
         uiState = uiState,
         onNavigate = onNavigate,
-        onRetry = viewModel::load
+        onRetry = viewModel::load,
+        layout = RowsBrowseLayout.GRID
     )
 }
