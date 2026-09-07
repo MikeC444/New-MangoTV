@@ -264,17 +264,6 @@ private fun RowsBrowseLoadedContent(
 // assuming a fixed screen size.
 private const val GRID_COLUMNS = 7
 
-// Target number of grid rows visible in the viewport without scrolling --
-// also drives the runtime posterScale computation, not a hard cap on rows.
-private const val GRID_ROWS_VISIBLE = 4
-
-// Approximate height of a card's below-poster text block (spacer + title
-// line + year line) at small scale -- Compose doesn't expose text height
-// without actually measuring it, so this is an estimate used only to size
-// the grid; being slightly off just means a bit more or less than exactly
-// GRID_ROWS_VISIBLE rows show, not a functional bug.
-private val GRID_CARD_TEXT_HEIGHT = 40.dp
-
 /**
  * Vertical, multi-column poster grid -- Movies, TV Shows, and Genre Results
  * only (My List keeps RowsBrowseLoadedContent's horizontal rows). Deliberately
@@ -354,26 +343,20 @@ private fun RowsBrowseGridContent(
     }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        // Width-driven: the scale that makes exactly GRID_COLUMNS columns
-        // fit edge-to-edge within the existing screen margins/card spacing.
+        // Driven by width only: the scale that makes exactly GRID_COLUMNS
+        // columns fill the available width edge-to-edge within the existing
+        // screen margins/card spacing. An earlier version also computed a
+        // height-driven scale (targeting a fixed number of visible rows)
+        // and took the smaller of the two -- in practice that estimate
+        // (built from approximate text/offset heights, not an actual
+        // measurement) came out far more conservative than the real
+        // available height, which left a large blank gap on the right
+        // instead of filling the screen. Width alone reliably fills the
+        // screen every time; the LazyColumn already scrolls, so however
+        // many rows this scale happens to show without scrolling is fine.
         val availableWidth = maxWidth - MangoDimens.ScreenPaddingHorizontal * 2
-        val widthDrivenCardWidth = (availableWidth - MangoDimens.CardSpacing * (GRID_COLUMNS - 1)) / GRID_COLUMNS
-        val widthDrivenScale = widthDrivenCardWidth / MangoDimens.PosterWidth
-
-        // Height-driven: the scale that makes GRID_ROWS_VISIBLE rows fit in
-        // the space left after the nav bar/top offset/title row.
-        val posterAspect = MangoDimens.PosterHeight / MangoDimens.PosterWidth
-        val topOffset = MangoDimens.NavBarHeight + 24.dp
-        val titleRowHeight = 46.dp // ~displayMedium's line height + vertical padding
-        val availableHeight = maxHeight - topOffset - titleRowHeight - MangoDimens.RowSpacing * (GRID_ROWS_VISIBLE - 1)
-        val perRowHeight = availableHeight / GRID_ROWS_VISIBLE
-        val heightDrivenPosterHeight = perRowHeight - GRID_CARD_TEXT_HEIGHT
-        val heightDrivenCardWidth = heightDrivenPosterHeight / posterAspect
-        val heightDrivenScale = heightDrivenCardWidth / MangoDimens.PosterWidth
-
-        // The smaller of the two guarantees BOTH "at least GRID_COLUMNS
-        // across" and "at least GRID_ROWS_VISIBLE down" simultaneously.
-        val posterScale = minOf(widthDrivenScale, heightDrivenScale).coerceIn(0.3f, 1f)
+        val cardWidth = (availableWidth - MangoDimens.CardSpacing * (GRID_COLUMNS - 1)) / GRID_COLUMNS
+        val posterScale = (cardWidth / MangoDimens.PosterWidth).coerceIn(0.3f, 1f)
 
         if (rows.isEmpty()) {
             Text(
