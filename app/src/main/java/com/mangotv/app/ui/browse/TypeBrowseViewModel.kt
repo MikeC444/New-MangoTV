@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.mangotv.app.data.model.ContentType
 import com.mangotv.app.data.provider.CatalogProvider
-import com.mangotv.app.data.provider.HomeRowPreferences
 import com.mangotv.app.data.provider.ProviderRegistry
 import com.mangotv.app.data.model.HomeSection
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,10 +15,10 @@ import kotlinx.coroutines.launch
 /**
  * Backs Movies and TV Shows: loops every installed provider's
  * getSectionsByType(type), same reactive-to-ProviderRegistry pattern as
- * HomeViewModel. Sorted with a throwaway HomeRowPreferences() instance
- * purely for its default "base row first, then curated genre order" sort --
- * these screens deliberately don't read/write the user's actual saved Home
- * Rows order/hidden state, so a hidden Home row still shows up here.
+ * HomeViewModel. Unlike Home, this deliberately shows no genre breakdown --
+ * every provider's base + genre rows are flattened into one deduplicated,
+ * shuffled row, so genres never touch the user's saved Home Rows state and
+ * a hidden Home row still shows up here.
  */
 open class TypeBrowseViewModel(application: Application, private val type: ContentType) : AndroidViewModel(application) {
 
@@ -52,9 +51,18 @@ open class TypeBrowseViewModel(application: Application, private val type: Conte
                 .onFailure { anyProviderFailed = true }
         }
 
-        val ordered = HomeRowPreferences().applyOrder(sections)
+        // Flatten every provider's base + genre rows into one deduplicated,
+        // shuffled row -- no genre breakdown here, and a fresh shuffle each
+        // time this loads so the order varies on revisit.
+        val items = sections.flatMap { it.items }.distinctBy { it.id }.shuffled()
+        val flattened = if (items.isNotEmpty()) {
+            listOf(HomeSection(id = "flat_$type", title = "", items = items))
+        } else {
+            emptyList()
+        }
+
         _uiState.value = when {
-            ordered.isNotEmpty() -> RowsBrowseUiState.Loaded(ordered)
+            flattened.isNotEmpty() -> RowsBrowseUiState.Loaded(flattened)
             anyProviderFailed -> RowsBrowseUiState.Error("Couldn't reach your installed addons. Check your connection and try again.")
             else -> RowsBrowseUiState.Loaded(emptyList())
         }

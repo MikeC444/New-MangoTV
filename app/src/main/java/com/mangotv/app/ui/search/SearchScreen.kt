@@ -31,6 +31,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -65,9 +72,21 @@ fun SearchScreen(
     val fieldFocusRequester = remember { FocusRequester() }
     val searchButtonFocusRequester = remember { FocusRequester() }
     val firstResultFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    // Gates the keyboard behind an explicit SELECT press on the field --
+    // TextField shows the IME on any focus gain by default (D-pad DOWN from
+    // the nav bar included, via TopNavBar's contentFocusRequester below),
+    // which pops the keyboard just from navigating past it. readOnly blocks
+    // that text-input session while still letting the field take D-pad
+    // focus normally; only DirectionCenter/Enter flips it into edit mode.
+    var isEditing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isEditing) {
+        if (isEditing) keyboardController?.show()
+    }
 
     LaunchedEffect(Unit) {
-        runCatching { fieldFocusRequester.requestFocus() }
+        runCatching { navFocusRequester.requestFocus() }
     }
 
     fun navigateToContent(target: Content) {
@@ -99,14 +118,31 @@ fun SearchScreen(
                     TextField(
                         value = query,
                         onValueChange = { query = it },
+                        readOnly = !isEditing,
                         placeholder = { Text("Search movies and TV shows") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { viewModel.search(query) }),
+                        keyboardActions = KeyboardActions(onSearch = {
+                            viewModel.search(query)
+                            isEditing = false
+                            keyboardController?.hide()
+                        }),
                         modifier = Modifier
                             .weight(1f)
                             .focusRequester(fieldFocusRequester)
-                            .focusProperties { up = navFocusRequester },
+                            .focusProperties { up = navFocusRequester }
+                            .onFocusChanged { state -> if (!state.isFocused) isEditing = false }
+                            .onPreviewKeyEvent { event ->
+                                if (!isEditing &&
+                                    (event.key == Key.DirectionCenter || event.key == Key.Enter) &&
+                                    event.type == KeyEventType.KeyDown
+                                ) {
+                                    isEditing = true
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = MangoSurface,
                             unfocusedContainerColor = MangoSurface,
