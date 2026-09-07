@@ -78,13 +78,14 @@ fun RowsBrowseContent(
     navLabel: String,
     uiState: RowsBrowseUiState,
     onNavigate: (String) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    emptyMessage: String = "Nothing to show here right now."
 ) {
     Box(Modifier.fillMaxSize().background(MangoBackground)) {
         when (uiState) {
             is RowsBrowseUiState.Loading -> RowsLoadingSkeleton()
             is RowsBrowseUiState.Error -> FullScreenErrorState(message = uiState.message, onRetry = onRetry)
-            is RowsBrowseUiState.Loaded -> RowsBrowseLoadedContent(screenTitle, navLabel, uiState.sections, onNavigate)
+            is RowsBrowseUiState.Loaded -> RowsBrowseLoadedContent(screenTitle, navLabel, uiState.sections, onNavigate, emptyMessage)
         }
     }
 }
@@ -95,7 +96,8 @@ private fun RowsBrowseLoadedContent(
     screenTitle: String,
     navLabel: String,
     sections: List<HomeSection>,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
+    emptyMessage: String
 ) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -157,7 +159,7 @@ private fun RowsBrowseLoadedContent(
     Box(Modifier.fillMaxSize()) {
         if (sections.isEmpty()) {
             Text(
-                text = "Nothing to show here right now.",
+                text = emptyMessage,
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier

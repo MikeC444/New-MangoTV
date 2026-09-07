@@ -11,6 +11,7 @@ import com.mangotv.app.ui.detail.DetailScreen
 import com.mangotv.app.ui.genres.GenreResultsScreen
 import com.mangotv.app.ui.genres.GenresScreen
 import com.mangotv.app.ui.search.SearchScreen
+import com.mangotv.app.ui.mylist.MyListScreen
 import com.mangotv.app.ui.home.HomeScreen
 import com.mangotv.app.ui.player.PlayerScreen
 import com.mangotv.app.ui.settings.AddAddonScreen
@@ -64,6 +65,11 @@ fun MangoNavHost() {
         }
         composable(MangoRoutes.SEARCH) {
             SearchScreen(
+                onNavigate = { route -> navController.navigate(route) }
+            )
+        }
+        composable(MangoRoutes.MY_LIST) {
+            MyListScreen(
                 onNavigate = { route -> navController.navigate(route) }
             )
         }

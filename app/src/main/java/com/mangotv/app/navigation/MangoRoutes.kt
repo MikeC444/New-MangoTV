@@ -14,6 +14,7 @@ object MangoRoutes {
     const val GENRES = "genres"
     const val GENRE_RESULTS_PATTERN = "genres/{genre}"
     const val SEARCH = "search"
+    const val MY_LIST = "my_list"
     const val DETAIL_PATTERN = "detail/{providerId}/{type}/{id}"
     const val SOURCES_PATTERN = "sources/{providerId}/{type}/{id}/{season}/{episode}"
     const val PLAYER_PATTERN = "player/{providerId}/{type}/{id}/{season}/{episode}/{streamId}"
@@ -54,6 +55,7 @@ fun routeForNavLabel(label: String): String? = when (label) {
     "TV Shows" -> MangoRoutes.TV_SHOWS
     "Genres" -> MangoRoutes.GENRES
     "Search" -> MangoRoutes.SEARCH
+    "My List" -> MangoRoutes.MY_LIST
     "Settings" -> MangoRoutes.SETTINGS
     else -> null
 }
