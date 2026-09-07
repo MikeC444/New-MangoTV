@@ -36,17 +36,45 @@ data class HomeRowPreferences(
 ) {
     /**
      * Applies this manual order to a freshly-fetched section list: rows the
-     * user has explicitly placed keep that relative order, and any row not
-     * yet seen before (a brand new addon, or a newly added genre) is
-     * appended at the end rather than needing to be found and re-sorted.
-     * Does not filter hidden rows -- callers decide whether they want those
-     * included (Home doesn't; the Home Rows settings list does, dimmed).
+     * user has explicitly placed keep that relative order. Any row not yet
+     * placed (a brand new addon, or a newly added genre) falls back to
+     * [DEFAULT_ROW_PRIORITY] -- "featured"/"popular"-style rows first, then
+     * genres in a sensible default order -- rather than whatever order the
+     * provider happened to return, so a first-run list already looks
+     * curated before the user reorders anything themselves. Does not
+     * filter hidden rows -- callers decide whether they want those included
+     * (Home doesn't; the Home Rows settings list does, dimmed).
      */
     fun applyOrder(sections: List<HomeSection>): List<HomeSection> {
         val byId = sections.associateBy { it.id }
         val ordered = order.mapNotNull { byId[it] }
         val remaining = sections.filterNot { it.id in order }
+            .sortedBy { defaultRank(it.title) }
         return ordered + remaining
+    }
+
+    companion object {
+        // Lookup by lowercased row title -- used only as the DEFAULT order
+        // for rows the user hasn't manually placed yet (see applyOrder).
+        // sortedBy is stable, so anything not in this list (a genre this
+        // app doesn't specifically know about, or any other addon-specific
+        // row name) simply keeps the order the provider returned it in,
+        // after everything recognized here. Multiple aliases per genre are
+        // included since different addons label the same genre differently
+        // (Cinemeta's "Science Fiction" vs. the more common "Sci-Fi").
+        private val DEFAULT_ROW_PRIORITY = listOf(
+            "featured", "popular", "trending", "trending now", "new releases",
+            "top 10 movies", "top 10 tv shows", "recently added",
+            "action", "comedy", "horror", "romance", "thriller", "drama",
+            "sci-fi", "science fiction", "fantasy", "mystery", "crime",
+            "family", "kids", "children", "anime", "animation",
+            "documentary", "music", "musical", "adventure"
+        )
+
+        private fun defaultRank(title: String): Int {
+            val rank = DEFAULT_ROW_PRIORITY.indexOf(title.trim().lowercase())
+            return if (rank >= 0) rank else DEFAULT_ROW_PRIORITY.size
+        }
     }
 }
 
