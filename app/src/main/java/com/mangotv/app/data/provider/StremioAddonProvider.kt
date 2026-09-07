@@ -88,9 +88,7 @@ class StremioAddonProvider(
     override suspend fun getAvailableGenres(): List<String> = declaredGenres(supportedCatalogs)
 
     override suspend fun getGenreSection(genre: String): HomeSection? {
-        val catalogsForGenre = supportedCatalogs.filter { catalogDef ->
-            genre in catalogDef.extra.firstOrNull { extra -> extra.name == "genre" }?.options.orEmpty()
-        }
+        val catalogsForGenre = catalogsMatchingGenre(genre)
         return fetchMergedSection(catalogsForGenre, title = genre, extra = mapOf("genre" to genre), rowKey = "genre_$genre")
     }
 
@@ -103,9 +101,7 @@ class StremioAddonProvider(
     }
 
     override suspend fun getMoreGenreItems(genre: String, page: Int): List<Content> {
-        val catalogsForGenre = supportedCatalogs.filter { catalogDef ->
-            genre in catalogDef.extra.firstOrNull { it.name == "genre" }?.options.orEmpty()
-        }
+        val catalogsForGenre = catalogsMatchingGenre(genre)
         if (catalogsForGenre.isEmpty()) return emptyList()
         return fetchPage(catalogsForGenre, extra = mapOf("genre" to genre), page = page)
     }
@@ -148,6 +144,20 @@ class StremioAddonProvider(
         }.awaitAll()
         interleave(perBaseCatalog).distinctBy { it.id }.filter { it.title.contains(query, ignoreCase = true) }
     }
+
+    // Some addons declare year filters (e.g. "2026", "2025", ...) under the
+    // same "genre" extra as real genre names. GenresViewModel extends that
+    // declared range further back (e.g. down to 2016) for the picker list,
+    // so a selected year here may not be one this catalog's own `options`
+    // literally lists -- matching by "does this catalog support year
+    // filtering at all" instead of exact membership lets those extended
+    // years still resolve to real results instead of always coming back
+    // empty. Plain genre names are unaffected -- still an exact match.
+    private fun catalogsMatchingGenre(genre: String): List<AddonCatalogDef> =
+        supportedCatalogs.filter { catalogDef ->
+            val options = catalogDef.extra.firstOrNull { it.name == "genre" }?.options.orEmpty()
+            if (genre.isYear()) options.any { it.isYear() } else genre in options
+        }
 
     // Shared by getMoreItemsByType/getMoreGenreItems: fetches one "skip"
     // page across every matching catalog in parallel and interleaves the
@@ -261,6 +271,8 @@ class StremioAddonProvider(
             .map { it.toStream(providerId = this.id, providerLabel = this.name) }
     }
 }
+
+private fun String.isYear(): Boolean = toIntOrNull()?.let { it in 1900..2100 } == true
 
 private fun <T> interleave(lists: List<List<T>>): List<T> {
     if (lists.size == 1) return lists[0]

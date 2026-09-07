@@ -16,6 +16,12 @@ sealed interface GenresUiState {
     data class Loaded(val genres: List<String>) : GenresUiState
 }
 
+// Some addons declare year filters (e.g. "2026", "2025", ...) under the same
+// "genre" extra as real genre names -- the user wants them kept in the same
+// list (not split into a separate screen) but grouped at the bottom, and
+// extended further back than whatever the addon itself happens to declare.
+private const val GENRE_LIST_MIN_YEAR = 2016
+
 /** Backs the Genres picker: unions getAvailableGenres() across every installed provider. */
 class GenresViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -34,10 +40,22 @@ class GenresViewModel(application: Application) : AndroidViewModel(application) 
             return
         }
         _uiState.value = GenresUiState.Loading
-        val genres = mutableSetOf<String>()
+        val allOptions = mutableSetOf<String>()
         for (provider in providers) {
-            runCatching { provider.getAvailableGenres() }.onSuccess { genres += it }
+            runCatching { provider.getAvailableGenres() }.onSuccess { allOptions += it }
         }
-        _uiState.value = GenresUiState.Loaded(genres.toList().sorted())
+
+        val (years, genreNames) = allOptions.partition { it.toIntOrNull()?.let { y -> y in 1900..2100 } == true }
+        val sortedGenres = genreNames.sorted()
+        val extendedYears = if (years.isNotEmpty()) {
+            val declaredYears = years.mapNotNull { it.toIntOrNull() }
+            val maxYear = declaredYears.max()
+            val minYear = minOf(declaredYears.min(), GENRE_LIST_MIN_YEAR)
+            (minYear..maxYear).sortedDescending().map { it.toString() }
+        } else {
+            emptyList()
+        }
+
+        _uiState.value = GenresUiState.Loaded(sortedGenres + extendedYears)
     }
 }
