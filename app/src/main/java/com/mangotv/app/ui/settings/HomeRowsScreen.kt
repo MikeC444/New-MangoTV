@@ -173,6 +173,14 @@ private fun HomeRowToggleRow(
                 .weight(1f)
                 .fillMaxWidth(),
             shape = RoundedCornerShape(MangoDimens.CardCornerRadius),
+            // TvFocusSurface's default focusedScale (1.08x) is tuned for
+            // small poster cards, where 8% is only a few dp. This row spans
+            // almost the full screen width, so the same percentage was tens
+            // of dp of growth per edge -- enough to push past the screen's
+            // safe margin and read as clipped/cut off. A much smaller scale
+            // keeps the same "grow on focus" feel at a size that stays
+            // safely on screen for a wide element.
+            focusedScale = 1.02f,
             backgroundColor = MangoSurface,
             focusRequester = focusRequester,
             focusUp = focusUp
