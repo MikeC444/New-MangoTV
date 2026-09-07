@@ -72,16 +72,11 @@ fun HomeRowsScreen(
         titleIcon = Icons.Filled.GridView
     ) {
         Text(
-            text = "Choose which categories appear on your home screen and in what order.",
+            text = "Toggle categories on or off, and use the handle to reorder them.",
             color = TextSecondary,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Text(
-            text = "Toggle categories on or off, and use the handle to rearrange them.",
-            color = TextTertiary,
             style = MaterialTheme.typography.bodySmall
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(8.dp))
 
         when (val state = uiState) {
             is HomeRowsUiState.Loading -> CircularProgressIndicator(color = MangoAmber)
@@ -105,7 +100,7 @@ fun HomeRowsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         itemsIndexed(orderedRows, key = { _, row -> row.id }) { index, row ->
                             val visible = row.id !in preferences.hiddenRowIds
@@ -126,15 +121,15 @@ fun HomeRowsScreen(
                     }
 
                     HorizontalDivider(color = TextTertiary.copy(alpha = 0.2f))
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Filled.Info,
                             contentDescription = null,
                             tint = TextTertiary,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(14.dp)
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text(
                             text = "Changes are saved automatically",
                             color = TextTertiary,
@@ -185,18 +180,18 @@ private fun HomeRowToggleRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 18.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = row.title,
                     color = titleColor,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(text = rowSubtitle(row), color = subtitleColor, style = MaterialTheme.typography.labelSmall)
-                Spacer(Modifier.width(14.dp))
+                Spacer(Modifier.width(12.dp))
                 Switch(
                     checked = visible,
                     onCheckedChange = null,
