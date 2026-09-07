@@ -40,9 +40,14 @@ fun SettingsScaffold(
     navFocusRequester: FocusRequester,
     firstContentFocusRequester: FocusRequester,
     titleIcon: ImageVector? = null,
+    // Which MangoNavItems label to highlight in the nav bar -- defaults to
+    // "Settings" so every existing Settings-family screen is unaffected.
+    // The Genres picker is the one non-Settings screen reusing this shell,
+    // and passes "Genres" here instead.
+    selectedNavLabel: String = "Settings",
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val settingsIndex = remember { MangoNavItems.indexOf("Settings") }
+    val selectedIndex = remember(selectedNavLabel) { MangoNavItems.indexOf(selectedNavLabel) }
 
     Column(
         modifier = Modifier
@@ -51,7 +56,7 @@ fun SettingsScaffold(
     ) {
         TopNavBar(
             transparentBackground = false,
-            selectedIndex = settingsIndex,
+            selectedIndex = selectedIndex,
             selectedItemFocusRequester = navFocusRequester,
             contentFocusRequester = firstContentFocusRequester,
             onItemClick = { label -> routeForNavLabel(label)?.let(onNavigate) }

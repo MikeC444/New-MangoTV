@@ -11,9 +11,13 @@ object MangoRoutes {
     const val SETTINGS_HOME_ROWS = "settings/home_rows"
     const val MOVIES = "movies"
     const val TV_SHOWS = "tv_shows"
+    const val GENRES = "genres"
+    const val GENRE_RESULTS_PATTERN = "genres/{genre}"
     const val DETAIL_PATTERN = "detail/{providerId}/{type}/{id}"
     const val SOURCES_PATTERN = "sources/{providerId}/{type}/{id}/{season}/{episode}"
     const val PLAYER_PATTERN = "player/{providerId}/{type}/{id}/{season}/{episode}/{streamId}"
+
+    fun genreResults(genre: String): String = "genres/${URLEncoder.encode(genre, "UTF-8")}"
 
     fun detail(providerId: String, type: ContentType, id: String): String {
         val encodedProviderId = URLEncoder.encode(providerId, "UTF-8")
@@ -47,6 +51,7 @@ fun routeForNavLabel(label: String): String? = when (label) {
     "Home" -> MangoRoutes.HOME
     "Movies" -> MangoRoutes.MOVIES
     "TV Shows" -> MangoRoutes.TV_SHOWS
+    "Genres" -> MangoRoutes.GENRES
     "Settings" -> MangoRoutes.SETTINGS
     else -> null
 }
