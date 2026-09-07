@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +19,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.unit.dp
 import com.mangotv.app.data.model.Content
 import com.mangotv.app.data.model.HomeSection
@@ -49,7 +50,12 @@ fun ContentRow(
     // scroll-to-center-this-row effect (see HomeScreen.kt) rather than
     // relying on Compose's automatic focus-triggered bring-into-view,
     // which proved impossible to keep smooth for centering.
-    onFocusChanged: (Boolean) -> Unit = {}
+    onFocusChanged: (Boolean) -> Unit = {},
+    // Pinned onto this row's first card so a caller with no hero (Movies,
+    // TV Shows, Genre Results, Search, My List) can land the nav bar's DOWN
+    // key directly on the first poster. Home/Detail don't pass this — they
+    // land DOWN on a hero button instead, so it defaults to null there.
+    firstItemFocusRequester: FocusRequester? = null
 ) {
     Column(
         modifier = modifier.onFocusChanged { onFocusChanged(it.hasFocus) }
@@ -90,13 +96,14 @@ fun ContentRow(
                 contentPadding = PaddingValues(horizontal = MangoDimens.ScreenPaddingHorizontal),
                 horizontalArrangement = Arrangement.spacedBy((if (compact) 12.dp else MangoDimens.CardSpacing) * posterScale)
             ) {
-                items(section.items, key = { it.id }) { content ->
+                itemsIndexed(section.items, key = { _, content -> content.id }) { index, content ->
                     ContentCard(
                         content = content,
                         style = section.style,
                         onClick = { onItemClick(content) },
                         compact = compact,
-                        posterScale = posterScale
+                        posterScale = posterScale,
+                        focusRequester = if (index == 0) firstItemFocusRequester else null
                     )
                 }
             }

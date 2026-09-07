@@ -9,6 +9,8 @@ object MangoRoutes {
     const val SETTINGS_ADDONS = "settings/addons"
     const val SETTINGS_ADD_ADDON = "settings/addons/add"
     const val SETTINGS_HOME_ROWS = "settings/home_rows"
+    const val MOVIES = "movies"
+    const val TV_SHOWS = "tv_shows"
     const val DETAIL_PATTERN = "detail/{providerId}/{type}/{id}"
     const val SOURCES_PATTERN = "sources/{providerId}/{type}/{id}/{season}/{episode}"
     const val PLAYER_PATTERN = "player/{providerId}/{type}/{id}/{season}/{episode}/{streamId}"
@@ -43,6 +45,8 @@ object MangoRoutes {
 /** Maps a top-nav label to the route it should navigate to, or null if that section isn't built yet. */
 fun routeForNavLabel(label: String): String? = when (label) {
     "Home" -> MangoRoutes.HOME
+    "Movies" -> MangoRoutes.MOVIES
+    "TV Shows" -> MangoRoutes.TV_SHOWS
     "Settings" -> MangoRoutes.SETTINGS
     else -> null
 }

@@ -66,6 +66,47 @@ fun HomeLoadingSkeleton(modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * A hero-less sibling of [HomeLoadingSkeleton] for screens that are just a
+ * stack of rows under the nav bar (Movies, TV Shows, Genre Results) — same
+ * shimmer-row shape, minus the big hero block Home has and these don't.
+ * Padded to clear the (always-overlaid) nav bar rather than living inside a
+ * scaffold, matching how those screens themselves are structured.
+ */
+@Composable
+fun RowsLoadingSkeleton(modifier: Modifier = Modifier, rowCount: Int = 4) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MangoBackground)
+            .padding(top = MangoDimens.NavBarHeight + 24.dp)
+    ) {
+        repeat(rowCount) {
+            Column(modifier = Modifier.padding(bottom = 32.dp)) {
+                ShimmerBox(
+                    modifier = Modifier
+                        .padding(horizontal = MangoDimens.ScreenPaddingHorizontal)
+                        .width(180.dp)
+                        .height(20.dp)
+                )
+                Spacer(Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.padding(horizontal = MangoDimens.ScreenPaddingHorizontal),
+                    horizontalArrangement = Arrangement.spacedBy(MangoDimens.CardSpacing)
+                ) {
+                    repeat(6) {
+                        ShimmerBox(
+                            modifier = Modifier
+                                .width(MangoDimens.PosterWidth)
+                                .height(MangoDimens.PosterHeight)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 /** Reused by other screens' own loading skeletons (e.g. Sources), not just this one. */
 @Composable
 fun ShimmerBox(

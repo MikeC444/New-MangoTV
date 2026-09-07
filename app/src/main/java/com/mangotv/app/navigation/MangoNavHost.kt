@@ -5,6 +5,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.mangotv.app.data.model.ContentType
+import com.mangotv.app.ui.browse.MoviesScreen
+import com.mangotv.app.ui.browse.TvShowsScreen
 import com.mangotv.app.ui.detail.DetailScreen
 import com.mangotv.app.ui.home.HomeScreen
 import com.mangotv.app.ui.player.PlayerScreen
@@ -34,6 +36,16 @@ fun MangoNavHost() {
         }
         composable(MangoRoutes.SETTINGS_HOME_ROWS) {
             HomeRowsScreen(
+                onNavigate = { route -> navController.navigate(route) }
+            )
+        }
+        composable(MangoRoutes.MOVIES) {
+            MoviesScreen(
+                onNavigate = { route -> navController.navigate(route) }
+            )
+        }
+        composable(MangoRoutes.TV_SHOWS) {
+            TvShowsScreen(
                 onNavigate = { route -> navController.navigate(route) }
             )
         }
